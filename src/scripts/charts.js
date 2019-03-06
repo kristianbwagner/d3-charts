@@ -6,6 +6,7 @@ charts.column = (chartConfig) => {
    const leftYAxis = chartConfig.leftYAxis || {};
    const margin = chartConfig.margin || {};
 
+   // Chart config
    let chart = {
       container: {
          id: chartConfig.containerId,
@@ -43,7 +44,10 @@ charts.column = (chartConfig) => {
       }
    };
 
+   // Chart object with relevant methods
    const chartObject = {
+
+      // Used to add base svg elements, only called once per chart
       init: () => {
 
          // Get a reference to the container and store dimensions
@@ -60,7 +64,7 @@ charts.column = (chartConfig) => {
          chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
          chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
 
-         // Create main group
+         // Create a group for axis elements
          chart.axis.el = chart.svg.el.append("g")
             .attr("class", "axis-group")
             .attr("transform", "translate(" + chart.g.margin.left + "," + chart.g.margin.top + ")")
@@ -93,14 +97,14 @@ charts.column = (chartConfig) => {
       },
       update: (update) => {
 
-         // Update dataset
+         // Update dataset and dimensions
          chart.dataset = update.dataset || chart.dataset;
          chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
 
-         // Update svg
+         // Update svg dimensions
          chart.svg.el.attr("width", chart.container.dimensions.width).attr("height", chart.container.dimensions.height);
 
-         // Update dimensions and margins
+         // Update dimensions and margins og main group
          chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
          chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
          chart.g.el.attr("transform", "translate(" + chart.g.margin.left + "," + chart.g.margin.top + ")")
@@ -111,30 +115,41 @@ charts.column = (chartConfig) => {
             .attr("width", chart.g.dimensions.width)
             .attr("height", chart.g.dimensions.height)
 
-         
+         // Set min and max values for left axis
          chart.leftYAxis.min = d3.min(chart.dataset.values, d => d.y);
          chart.leftYAxis.max = d3.max(chart.dataset.values, d => d.y)
          
          // Update left axis
-         const leftYMin = chart.leftYAxis.min;
-         const leftYMax = chart.leftYAxis.max;
-         const leftYDomain = [leftYMin, leftYMax];
-         const leftYScale = d3.scaleLinear().rangeRound([chart.g.dimensions.height, 0]).domain(leftYDomain);
+         const leftYDomain = [chart.leftYAxis.min, chart.leftYAxis.max];
+         const leftYScale = d3
+            .scaleLinear() // Type of scale used for axis
+            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
+            .domain(leftYDomain) // All values on axis;
+         chart.leftYAxis.scale = leftYScale;
+
+         // Draw axis with .call d3 function
          const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3.axisLeft(leftYScale).tickSize(gridlineLength);
-         chart.leftYAxis.scale = leftYScale;
          chart.leftYAxis.el.call(leftYAxis);
 
          // Update bottom axis
          const bottomXDomain = chart.dataset.values.map(d => d.x);
-         const bottomXScale = d3.scaleBand().rangeRound([0, chart.g.dimensions.width]).domain(bottomXDomain).padding(0.1);
+         const bottomXScale = d3
+            .scaleBand() // Type of scale used for axis
+            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
+            .domain(bottomXDomain) // The values on the axis
+            .padding(0.1) // Padding between columns
          const bottomXAxis = d3.axisBottom(bottomXScale);
          chart.bottomXAxis.scale = bottomXScale;
          chart.bottomXAxis.el.call(bottomXAxis);
 
-         // Create group per x group
-         const columns = chart.g.el.selectAll(".column").data(chart.dataset.values, (d) => d.x);
+         // Create a reference to all columns and assign data
+         const columns = chart.g.el.selectAll(".column").data(
+            chart.dataset.values,
+            (d) => d.x // Used as a key (identifier) per data row. Used to determine which rows have been added, remained same or removed
+         );
          
+         // .enter handles all new rows that are added
          columns.enter()
             .append("rect")
             .attr("class", "column")
@@ -143,12 +158,14 @@ charts.column = (chartConfig) => {
             .attr("y", d => leftYScale(d.y))
             .attr("x", d => bottomXScale(d.x))
 
+         // Update existing columns
          columns
             .attr("width", bottomXScale.bandwidth())
             .attr("height", d => chart.g.dimensions.height - leftYScale(d.y))
             .attr("y", d => leftYScale(d.y))
             .attr("x", d => bottomXScale(d.x))
 
+         // .exit handles columns that are being removed
          columns.exit()
             .remove();
             
@@ -166,12 +183,22 @@ charts.column = (chartConfig) => {
             .on("mouseover", () => {})
             .on("mouseout", () => {})
             .on("mousemove", (d, i, nodes) => {
+
+               // Get coordinates of mouse
                const mouseCoordinates = d3.mouse(nodes[i]);
                const mouseX = mouseCoordinates[0];
                const mouseY = mouseCoordinates[1];
+
+               // Get all values on x axis
                const xValues = chart.bottomXAxis.scale.domain();
+
+               // Calculate center points of all columns
                const columnCenterPoints = xValues.map(d => chart.bottomXAxis.scale(d) + (chart.bottomXAxis.scale.bandwidth() / 2));
+
+               // Get distances to x mouse position
                const distancesToMouseX = xValues.map((d, i) => Math.abs(columnCenterPoints[i] - mouseX));
+
+               // Calculate closest column
                let closestColumnIndex = 0;
                let closestDistance = distancesToMouseX[0];
                distancesToMouseX.forEach((d, i) => {
@@ -180,8 +207,9 @@ charts.column = (chartConfig) => {
                      closestDistance = d;
                   }
                })
-
                const closestColumn = chart.dataset.values[closestColumnIndex];
+
+               // Send information about hover in callback
                callback({
                   name: closestColumn.x,
                   left: columnCenterPoints[closestColumnIndex] + chart.g.margin.left,
