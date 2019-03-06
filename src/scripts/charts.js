@@ -1,6 +1,12 @@
 import * as d3 from 'd3';
 const charts = {};
 
+/** 
+ * @name column
+ * Scale: scaleBand
+ * Axes: left, bottom
+ **/
+
 charts.column = (chartConfig) => {
    const bottomXAxis = chartConfig.bottomXAxis || {};
    const leftYAxis = chartConfig.leftYAxis || {};
@@ -227,4 +233,93 @@ charts.column = (chartConfig) => {
    return chartObject;
 };
 
+/** 
+ * @name stackedColumn
+ * Scale: scaleBand
+ * Axes: left, bottom
+ **/
+
+charts.stackedColumn = (chartConfig) => {}
+
+/** 
+ * @name groupedColumn
+ * Scale: scaleBand
+ * Axes: left, bottom
+ **/
+
+charts.groupedColumn = (chartConfig) => {}
+
+/** 
+ * @name bar
+ * Scale: scaleBand
+ * Axes: left, bottom
+ **/
+
+charts.bar = (chartConfig) => {}
+
+/** 
+ * @name stackedBar
+ * Scale: scaleBand
+ * Axes: left, bottom
+ **/
+
+charts.stackedBar = (chartConfig) => {}
+
+/** 
+ * @name groupedBar
+ * Scale: scaleBand
+ * Axes: left, bottom
+ **/
+
+charts.groupedBar = (chartConfig) => {}
+
+/** 
+ * @name line
+ * Scale: scalePoint
+ * Axes: left, bottom
+ **/
+
+charts.line = (chartConfig) => {}
+
+/** 
+ * @name timeLine
+ * Scale: scaleTime
+ * Axes: left, bottom
+ **/
+
+charts.timeLine = (chartConfig) => {}
+
+/** 
+ * @name sparkLine
+ * Scale: scalePoint
+ * Axes: bottom
+ **/
+
+charts.sparkLine = (chartConfig) => {}
+
+/** 
+ * @name lineColumn
+ * Scale: scaleBand
+ * Axes: left, bottom
+ **/
+
+charts.lineColumn = (chartConfig) => {}
+
+/** 
+ * @name winLoss
+ * Scale: scaleBand
+ * Axes: left, bottom
+ **/
+
+charts.winLoss = (chartConfig) => {}
+
+/** 
+ * @name pieChart
+ * Scale: none
+ * Axes: none
+ **/
+
+charts.pieChart = (chartConfig) => {}
+
+// Export charts
 export default charts
