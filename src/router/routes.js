@@ -13,5 +13,10 @@ export default [
       path: '/stacked-column',
       name: "stacked column",
       component: () => import('@/pages/stacked-column.vue'),
+   },
+   {
+      path: '/line',
+      name: "line",
+      component: () => import('@/pages/line.vue'),
    }
 ]

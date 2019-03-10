@@ -41,7 +41,8 @@
 
 <script>
 
-   import charts from  '@/scripts/charts.js'
+   import charts from  '@/scripts/charts.js';
+   import debounce from 'lodash/debounce';
 
 	export default {
 		components: {},
@@ -88,8 +89,15 @@
             vm.hoverValue = ''
          })
 
+         window.addEventListener('resize', this.onResize);
+      },
+      destroyed() {
+         window.removeEventListener('resize', this.onResize);
       },
       methods: {
+         onResize: debounce(function(){
+            this.chart.update()
+         },200),
          changeData() {
             this.chart.update({
                leftYAxis: {

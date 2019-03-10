@@ -41,7 +41,8 @@
 
 <script>
 
-   import charts from  '@/scripts/charts.js'
+   import charts from  '@/scripts/charts.js';
+   import debounce from 'lodash/debounce';
 
 	export default {
 		components: {},
@@ -83,8 +84,26 @@
                }
             } 
          })
+
+         this.chart.mouseMove(d => {
+            vm.hoverValue = d.y;
+            vm.hoverTop = d.top;
+            vm.hoverLeft = d.left;
+         })
+
+         this.chart.mouseOut(d => {
+            vm.hoverValue = ''
+         })
+
+         window.addEventListener('resize', this.onResize);
+      },
+      destroyed() {
+         window.removeEventListener('resize', this.onResize);
       },
       methods: {
+         onResize: debounce(function(){
+            this.chart.update();
+         }, 200),
          changeData() {
             this.chart.update({
                datasets: {

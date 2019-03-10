@@ -1,7 +1,6 @@
 <template>
   <div id="app">	
 
-     <button @click="updateData">Update Data</button>
      <button @click="changeData">Change Data</button>
 		
      <div 
@@ -59,32 +58,22 @@
       mounted() {
          const vm = this;
          
-         this.chart = new charts.groupedColumn({
+         this.chart = new charts.line({
             containerId: '#chart',
             datasets: {
-               'visits': {
+               'conversions': {
                   color: 'green',
-                  borderRadius: 4,
+                  strokeWidth: 3,
+                  radius: 5,
                   values: [
-                     {x: 'DK', y: 1120},
-                     {x: 'SE', y: 1160},
-                     {x: 'NO', y: 1040},
-                     {x: 'FI', y: 1030},
-                     {x: 'DE', y: 980}
-                  ]
-               },
-               'transactions': {
-                  color: 'blue',
-                  borderRadius: 4,
-                  values: [
-                     {x: 'DK', y: 180},
-                     {x: 'SE', y: 360},
-                     {x: 'NO', y: 440},
-                     {x: 'FI', y: 630},
-                     {x: 'DE', y: 280}
+                     {x: 'DK', y: 1020},
+                     {x: 'SE', y: 560},
+                     {x: 'NO', y: 2240},
+                     {x: 'FI', y: 730},
+                     {x: 'DE', y: 480}
                   ]
                }
-            }
+            } 
          })
 
          this.chart.mouseMove(d => {
@@ -104,36 +93,34 @@
       },
       methods: {
          onResize: debounce(function(){
-            this.chart.update();
-         },200),
-         updateData() {
-            this.chart.update({
-               leftYAxis: {
-                  min: 100,
-               },
-               bottomXAxis: {
-                  padding: 0.3
-               },
-               dataset: {
-                  name: 'visits',
-                  color: 'red'
-               }
-            })
-         },
+            this.chart.update()
+         }, 200),
          changeData() {
             this.chart.update({
                datasets: {
                   'visits': {
-                     color: 'green',
+                     color: 'red',
+                     strokeWidth: 3,
+                     radius: 5,
                      values: [
-                        {x: 'DK', y: 2020},
+                        {x: 'DK', y: -620},
                         {x: 'SE', y: 1160},
                         {x: 'NO', y: 1040},
                         {x: 'FI', y: 1030},
-                        {x: 'DE', y: 1280}
+                        {x: 'DE', y: 1080}
+                     ]
+                  },
+                  'conversions': {
+                     color: 'blue',
+                     values: [
+                        {x: 'DK', y: 1020},
+                        {x: 'SE', y: 560},
+                        {x: 'NO', y: 2240},
+                        {x: 'FI', y: 730},
+                        {x: 'DE', y: 480}
                      ]
                   }
-               }
+               } 
             })
          }
       }

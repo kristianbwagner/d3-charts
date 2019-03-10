@@ -4,6 +4,7 @@
          <router-link to="/column">Column</router-link>
          <router-link to="/grouped-column">Grouped Column</router-link>
          <router-link to="/stacked-column">Stacked Column</router-link>
+         <router-link to="/line">Line</router-link>
       </div>
       <router-view>
 		</router-view>
