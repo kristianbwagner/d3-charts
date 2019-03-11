@@ -28,5 +28,10 @@ export default [
       path: '/stacked-area',
       name: "stacked area",
       component: () => import('@/pages/stacked-area.vue'),
+   },
+   {
+      path: '/line-column',
+      name: "line column",
+      component: () => import('@/pages/line-column.vue'),
    }
 ]
