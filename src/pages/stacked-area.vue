@@ -1,7 +1,8 @@
 <template>
   <div id="app">	
 
-     <button @click="changeData">Change Data</button>
+     <button @click="absoluteValues">Absolute</button>
+     <button @click="percentValues">Percent</button>
 		
      <div 
          id="chart"
@@ -58,20 +59,29 @@
       mounted() {
          const vm = this;
          
-         this.chart = new charts.line({
+         this.chart = new charts.stackedArea({
             containerId: '#chart',
+            isSmooth: false,
+            isPercent: false,
             datasets: {
-               'conversions': {
+               'mobile': {
                   color: 'green',
-                  strokeWidth: 3,
-                  radius: 5,
-                  smooth: true,
                   values: [
                      {x: 'DK', y: 1020},
                      {x: 'SE', y: 560},
                      {x: 'NO', y: 2240},
                      {x: 'FI', y: 730},
                      {x: 'DE', y: 480}
+                  ]
+               },
+               'desktop': {
+                  color: 'blue',
+                  values: [
+                     {x: 'DK', y: 520},
+                     {x: 'SE', y: 360},
+                     {x: 'NO', y: 1340},
+                     {x: 'FI', y: 1730},
+                     {x: 'DE', y: 980}
                   ]
                }
             } 
@@ -96,32 +106,14 @@
          onResize: debounce(function(){
             this.chart.update()
          }, 200),
-         changeData() {
+         absoluteValues() {
             this.chart.update({
-               datasets: {
-                  'visits': {
-                     color: 'red',
-                     strokeWidth: 3,
-                     smooth: true,
-                     radius: 5,
-                     values: [
-                        {x: 'DK', y: -620},
-                        {x: 'SE', y: 1160},
-                        {x: 'NO', y: 1040},
-                        {x: 'FI', y: 1030},
-                        {x: 'DE', y: 1080}
-                     ]
-                  },
-                  'conversions': {
-                     values: [
-                        {x: 'DK', y: 1020},
-                        {x: 'SE', y: 560},
-                        {x: 'NO', y: 2240},
-                        {x: 'FI', y: 730},
-                        {x: 'DE', y: 480}
-                     ]
-                  }
-               } 
+               isPercent: false
+            })
+         },
+         percentValues() {
+            this.chart.update({
+               isPercent: true
             })
          }
       }

@@ -58,7 +58,7 @@
       mounted() {
          const vm = this;
          
-         this.chart = new charts.line({
+         this.chart = new charts.area({
             containerId: '#chart',
             datasets: {
                'conversions': {

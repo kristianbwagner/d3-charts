@@ -18,5 +18,15 @@ export default [
       path: '/line',
       name: "line",
       component: () => import('@/pages/line.vue'),
+   },
+   {
+      path: '/area',
+      name: "area",
+      component: () => import('@/pages/area.vue'),
+   },
+   {
+      path: '/stacked-area',
+      name: "stacked area",
+      component: () => import('@/pages/stacked-area.vue'),
    }
 ]
