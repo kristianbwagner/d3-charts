@@ -58,17 +58,16 @@
       mounted() {
          const vm = this;
          
-         this.chart = new charts.lineColumn({
-            containerId: '#chart',
+         this.chart = new charts.lineColumn('#chart', {
             rightYAxis: {
-               format: {number: ',.0%'},
+               format: {string: ',.0%'},
                max: 1
             },
             datasets: {
                'visits': {
                   type: 'column',
                   axis: 'left',
-                  color: 'lightgrey',
+                  color: 'grey',
                   borderRadius: 5,
                   values: [
                      {x: 'DK', y: 1540},
@@ -76,6 +75,19 @@
                      {x: 'NO', y: 820},
                      {x: 'FI', y: 930},
                      {x: 'DE', y: 1080}
+                  ]
+               },
+               'visits last year': {
+                  type: 'column',
+                  axis: 'left',
+                  color: 'lightgrey',
+                  borderRadius: 5,
+                  values: [
+                     {x: 'DK', y: 1240},
+                     {x: 'SE', y: 630},
+                     {x: 'NO', y: 620},
+                     {x: 'FI', y: 430},
+                     {x: 'DE', y: 680}
                   ]
                },
                'conv. rate': {
@@ -132,7 +144,8 @@
             this.chart.update({
                rightYAxis: {max: 1},
                datasets: {
-                  'interaction rate': null
+                  'interaction rate': null,
+                  'visits': null
                }
             })
          }

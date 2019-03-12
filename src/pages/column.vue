@@ -58,22 +58,28 @@
       mounted() {
          const vm = this;
          
-         this.chart = new charts.column({
-            containerId: '#chart',
+         this.chart = new charts.column('#chart', {
             leftYAxis: {
                max: 1200,
                min: -1200,
+            },
+            bottomXAxis: {
+               format: {
+                  string: '%_d %b',
+                  isDate: true
+               }
             },
             datasets: {
                'visits': {
                   color: 'green',
                   borderRadius: 4,
                   values: [
-                     {x: 'DK', y: -620},
-                     {x: 'SE', y: 1160},
-                     {x: 'NO', y: 1040},
-                     {x: 'FI', y: 1030},
-                     {x: 'DE', y: 1080}
+                     {x: new Date(2019,1,2), y: 1160},
+                     {x: new Date(2019,1,5), y: 1080},
+                     {x: new Date(2019,1,1), y: -620},
+                     {x: new Date(2019,1,3), y: 1040},
+                     {x: new Date(2019,1,4), y: 1030},
+                     {x: new Date(2019,1,10), y: 1030},
                   ]
                }
             } 
@@ -103,6 +109,12 @@
                leftYAxis: {
                   max: 'auto',
                   min: 'auto',
+               },
+               bottomXAxis: {
+                  format: {
+                     string: '',
+                     isDate: false
+                  }
                },
                datasets: {
                   'visits': null,

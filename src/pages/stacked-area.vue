@@ -59,8 +59,7 @@
       mounted() {
          const vm = this;
          
-         this.chart = new charts.stackedArea({
-            containerId: '#chart',
+         this.chart = new charts.stackedArea('#chart', {
             isSmooth: false,
             isPercent: false,
             datasets: {

@@ -1,9 +1,7 @@
 <template>
   <div id="app">	
-
-     <button @click="updateData">Update Data</button>
-     <button @click="changeData">Change Data</button>
-		
+     <button @click="changeTimePeriod">Change time period</button>
+     <button @click="resetTimePeriod">Reset time period</button>
      <div 
          id="chart"
          style="width: 100%; height: 300px; background: #EFEFEF">
@@ -59,47 +57,43 @@
       mounted() {
          const vm = this;
          
-         this.chart = new charts.groupedColumn('#chart', {
-            bottomXAxis: {
-               format: {
-                  string: '%_d %b',
-                  isDate: true
-               }
-            },
+         this.chart = new charts.timeLine('#chart', {
             datasets: {
                'visits': {
                   color: 'green',
-                  borderRadius: 5,
+                  strokeWidth: 3,
+                  radius: 5,
+                  isSmooth: true,
                   values: [
-                     {x: new Date(2019,1,10), y: 480},
                      {x: new Date(2019,1,1), y: 1020},
-                     {x: new Date(2019,1,2), y: 560},
-                     {x: new Date(2019,1,3), y: 2240},
+                     {x: new Date(2019,1,2), y: 840},
+                     {x: new Date(2019,1,3), y: 1640},
                      {x: new Date(2019,1,4), y: 730},
                      {x: new Date(2019,1,5), y: 480},
                      {x: new Date(2019,1,6), y: 720},
                      {x: new Date(2019,1,7), y: 560},
                      {x: new Date(2019,1,8), y: 2040},
-                     {x: new Date(2019,1,9), y: 530},    
+                     {x: new Date(2019,1,9), y: 530},
+                     {x: new Date(2019,1,10), y: 480}
                   ]
                },
                'sessions': {
                   color: 'blue',
-                  borderRadius: 5,
+                  strokeWidth: 3,
+                  radius: 5,
+                  isSmooth: true,
                   values: [
                      {x: new Date(2019,1,1), y: 20},
-                     {x: new Date(2019,1,2), y: 460},
                      {x: new Date(2019,1,3), y: 940},
-                     {x: new Date(2019,1,4), y: 530},
-                     {x: new Date(2019,1,5), y: 680},
+                     {x: new Date(2019,1,4), y: 130},
                      {x: new Date(2019,1,6), y: 520},
-                     {x: new Date(2019,1,7), y: 460},
+                     {x: new Date(2019,1,7), y: 260},
                      {x: new Date(2019,1,8), y: 640},
-                     {x: new Date(2019,1,9), y: 430},
-                     {x: new Date(2019,1,10), y: 380}
+                     {x: new Date(2019,1,9), y: 830},
+                     {x: new Date(2019,1,10), y: 1580}
                   ]
                }
-            }
+            } 
          })
 
          this.chart.mouseMove(d => {
@@ -119,36 +113,22 @@
       },
       methods: {
          onResize: debounce(function(){
-            this.chart.update();
-         },200),
-         updateData() {
+            this.chart.update()
+         }, 200),
+         changeTimePeriod() {
             this.chart.update({
-               leftYAxis: {
-                  min: 100,
-               },
                bottomXAxis: {
-                  padding: 0.3
+                  min: new Date(2019,1,4),
+                  max: new Date(2019,1,6)
                }
             })
          },
-         changeData() {
+         resetTimePeriod() {
             this.chart.update({
-               datasets: {
-                  'visits': {
-                     values: [
-                        {x: new Date(2019,1,1), y: 820},
-                        {x: new Date(2019,1,2), y: 560},
-                        {x: new Date(2019,1,3), y: 640},
-                        {x: new Date(2019,1,4), y: 1230},
-                        {x: new Date(2019,1,5), y: 880},
-                        {x: new Date(2019,1,6), y: 920},
-                        {x: new Date(2019,1,7), y: 760},
-                        {x: new Date(2019,1,8), y: 1040},
-                        {x: new Date(2019,1,9), y: 830},
-                        {x: new Date(2019,1,10), y: 480}
-                     ]
-                  },
-               }
+               bottomXAxis: {
+                  min: 'auto',
+                  max: 'auto'
+               },
             })
          }
       }

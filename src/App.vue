@@ -8,6 +8,7 @@
          <router-link class="link" to="/area">Area</router-link>
          <router-link class="link" to="/stacked-area">Stacked Area</router-link>
          <router-link class="link" to="/line-column">Line Column</router-link>
+         <router-link class="link" to="/time-line">Time line</router-link>
       </div>
       <router-view>
 		</router-view>

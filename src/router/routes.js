@@ -33,5 +33,10 @@ export default [
       path: '/line-column',
       name: "line column",
       component: () => import('@/pages/line-column.vue'),
+   },
+   {
+      path: '/time-line',
+      name: "time-line",
+      component: () => import('@/pages/time-line.vue'),
    }
 ]

@@ -1,73 +1,216 @@
 import * as d3 from 'd3';
 import _get from 'lodash/get';
-const charts = {};
+import _set from 'lodash/set';
 
-
-/** 
- * @name column
- * Scale: scaleBand
- * Axes: left, bottom
- **/
-
-charts.column = (chartConfig) => {
-
-   // Chart object with relevant methods
-   const chart = {
-      config: {
-         container: {id: chartConfig.containerId, el: '', dimensions: {}},
-         axis: {el: ''},
-         overlay: {el: ''},
-         svg: {dimensions: {}, el: ''},
-         g: {dimensions: {}, el: '', clip: '', margin: {top: 32, right: 32, bottom: 32, left: 50}},
+const utils = {
+   formatValue: (value, config) => {
+      const formatter = config || {};
+      const formattedString = formatter.string === '' 
+         ? value 
+         : formatter.isDate 
+         ? d3.timeFormat(formatter.string)(value) 
+         : d3.format(formatter.string)(value);
+      return `${formatter.prefix || ''} ${formattedString} ${formatter.suffix || ''}`
+   },
+   baseChart(elementId, customConfig) {
+      const config = {
+         container: {
+            id: '',
+            el: '',
+            dimensions: {}
+         },
+         axis: {
+            el: ''
+         },
+         overlay: {
+            el: ''
+         },
+         svg: {
+            dimensions: {},
+            el: ''
+         },
+         g: {
+            dimensions: {},
+            el: '',
+            clip: '',
+            margin: {
+               top: 32,
+               right: 32,
+               bottom: 32,
+               left: 50
+            }
+         },
          datasets: {},
-         bottomXAxis: {el: '', padding: 0.1},
-         leftYAxis: {el: '', min: 'auto', max: 'auto', format: {number: ',.0f', prefix: '', suffix: ''}}
-      },
-      init: () => {
+         bottomXAxis: {
+            el: '', 
+            padding: 0.1,
+            min: 'auto',
+            max: 'auto',
+            format: {
+               string: '',
+               prefix: '',
+               suffix: '',
+               isDate: false
+            }
+         },
+         leftYAxis: {
+            el: '',
+            min: 'auto',
+            max: 'auto',
+            format: {
+               string: ',.0f',
+               prefix: '',
+               suffix: '',
+               isDate: false
+            }
+         },
+         rightYAxis: {
+            el: '',
+            min: 'auto',
+            max: 'auto',
+            format: {
+               string: ',.0f',
+               prefix: '',
+               suffix: '',
+               isDate: false
+            }
+         }
+      };
 
-         // Get a reference to the container and store dimensions
-         chart.config.container.el = d3.select(chart.config.container.id);
-         chart.config.container.dimensions = chart.config.container.el.node().getBoundingClientRect();
+      // Add custom config
+      const customAdditions = customConfig || {};
+      Object.keys(customAdditions).forEach(key => {
+         const value = customAdditions[key];
+         _set(config, key, value);   
+      })
 
-         // Create svg element
-         chart.config.svg.el = chart.config.container.el.append('svg')
-            .attr('class', 'chart-svg')
-            .attr('width', chart.config.container.dimensions.width)
-            .attr('height', chart.config.container.dimensions.height);
+      // Get a reference to the container and store dimensions
+      config.container.el = d3.select(elementId);
+      config.container.dimensions = config.container.el.node().getBoundingClientRect();
 
-         // Create dimensions for main group
-         chart.config.g.dimensions.width = +chart.config.container.dimensions.width - chart.config.g.margin.left - chart.config.g.margin.right;
-         chart.config.g.dimensions.height = +chart.config.container.dimensions.height - chart.config.g.margin.top - chart.config.g.margin.bottom;
+      // Create svg element
+      config.svg.el = config.container.el.append('svg')
+         .attr('class', 'chart-svg')
+         .attr('width', config.container.dimensions.width)
+         .attr('height', config.container.dimensions.height);
 
-         // Create a group for axis elements
-         chart.config.axis.el = chart.config.svg.el.append('g')
-            .attr('class', 'axis-group')
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
+      // Create dimensions for main group
+      config.g.dimensions.width = +config.container.dimensions.width - config.g.margin.left - config.g.margin.right;
+      config.g.dimensions.height = +config.container.dimensions.height - config.g.margin.top - config.g.margin.bottom;
 
-         // Create main group
-         chart.config.g.el = chart.config.svg.el.append('g')
-            .attr('class', 'chart-group')
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
+      // Create a group for axis elements
+      config.axis.el = config.svg.el.append('g')
+         .attr('class', 'axis-group')
+         .attr('transform', 'translate(' + config.g.margin.left + ',' + config.g.margin.top + ')')
 
-         // Create x axis
-         chart.config.bottomXAxis.el = chart.config.axis.el.append('g')
-            .attr('class', 'bottom-x-axis')
-            .attr('transform', 'translate(0,' + chart.config.g.dimensions.height + ')');
+      // Create main group
+      config.g.el = config.svg.el.append('g')
+         .attr('class', 'chart-group')
+         .attr('transform', 'translate(' + config.g.margin.left + ',' + config.g.margin.top + ')')
 
-         // Create y axis
-         chart.config.leftYAxis.el = chart.config.axis.el.append('g')
-            .attr('class', 'left-y-axis');
+      // Create x axis
+      config.bottomXAxis.el = config.axis.el.append('g')
+         .attr('class', 'bottom-x-axis')
+         .attr('transform', 'translate(0,' + config.g.dimensions.height + ')');
 
-         // Create hover overlay
-         chart.config.overlay.el = chart.config.svg.el.append('rect')
-            .attr('class', 'overlay')
-            .style('opacity', 0)
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-            .attr('width', chart.config.g.dimensions.width)
-            .attr('height', chart.config.g.dimensions.height)	
+      // Create y axis
+      config.leftYAxis.el = config.axis.el.append('g')
+         .attr('class', 'left-y-axis');
 
-      },
-      update: (updates) => {
+      // Create y axis
+      config.rightYAxis.el = config.axis.el.append('g')
+         .attr('class', 'right-y-axis')
+         .attr('transform', 'translate(' + config.g.dimensions.width + ',0)');
+
+      // Create hover overlay
+      config.overlay.el = config.svg.el.append('rect')
+         .attr('class', 'overlay')
+         .style('opacity', 0)
+         .attr('transform', 'translate(' + config.g.margin.left + ',' + config.g.margin.top + ')')
+         .attr('width', config.g.dimensions.width)
+         .attr('height', config.g.dimensions.height)	
+
+
+      // Add default mouse over callback
+      config.mouseOver = (callback) => {
+         config.svg.el.selectAll('.overlay').on('mouseover', () => callback())
+      }
+      
+      // Add default mouse out callback
+      config.mouseOut = (callback) => {
+         config.svg.el.selectAll('.overlay').on('mouseout', () => callback())
+      }
+
+      // Add default mouse move callback
+      config.mouseMove = (callback) => {
+         config.svg.el.selectAll('.overlay').on('mousemove', (d, i, nodes) => {
+            const mouseCoordinates = d3.mouse(nodes[i]);
+            const mouseX = mouseCoordinates[0];
+            const mouseY = mouseCoordinates[1];
+            const xValues = config.bottomXAxis.definedValues ||config.bottomXAxis.scale.domain();
+      
+            // Check for bandwidth and get mouse coordinates
+            const hasBandWidth = typeof config.bottomXAxis.scale.bandwidth === 'function';
+      
+            // Calculate closest column
+            let closestColumnIndex = -1;
+            let closestDistance = config.g.dimensions.width;
+            const bandWidthAdjust = hasBandWidth ? (config.bottomXAxis.scale.bandwidth() / 2) : 0;
+            
+            // Loop over xValues and get closest value
+            xValues.forEach((d, i) => {
+               const xValue = config.bottomXAxis.scale(d) + bandWidthAdjust;
+               const distance = Math.abs(xValue - mouseX)
+               if (distance < closestDistance) {
+                  closestColumnIndex = i;
+                  closestDistance = distance;
+               }
+            })
+      
+            // Calculate closest group
+            const closestGroup = xValues[closestColumnIndex];
+            const closestValues = Object.values(config.datasets).map(d => {
+               const groupValues = d.values.filter(d => {
+                  // In order to compare dates you have to transform them to time
+                  const isDate = typeof d.x.getTime === 'function';
+                  const xValue = isDate ? d.x.getTime() : d.x;
+                  const closestValue = isDate ? closestGroup.getTime() : closestGroup;
+                  return xValue === closestValue;
+               }) || [];
+               const firstMatch = groupValues[0] || {};
+               return firstMatch.y;
+            })
+      
+            // Send information about hover in callback
+            callback({
+               name: closestGroup,
+               left: config.bottomXAxis.scale(closestGroup) + config.g.margin.left + bandWidthAdjust,
+               top: mouseY + config.g.margin.top,
+               y: closestValues,
+            })
+         })
+      }
+
+      // Add default delete callback
+      chart.delete = () => {
+         chart.config.svg.el.remove();
+      }
+
+      return config;
+   },
+};
+
+const charts = {
+
+   /** 
+    * @name column
+    * Scale: scaleBand
+    * Axes: left, bottom
+    **/
+
+   column: (elementId, update) => {
+      const chart = utils.baseChart(elementId);
+      chart.update = (updates) => {
 
          // Define all possible updates
          if (updates !== undefined) {
@@ -78,90 +221,91 @@ charts.column = (chartConfig) => {
             }
 
             // Dimension
-            chart.config.g.margin.top = updateConfigValue('margin.top', chart.config.g.margin.top);
-            chart.config.g.margin.right = updateConfigValue('margin.right', chart.config.g.margin.right);
-            chart.config.g.margin.bottom = updateConfigValue('margin.bottom', chart.config.g.margin.bottom);
-            chart.config.g.margin.left = updateConfigValue('margin.left', chart.config.g.margin.left);
+            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
+            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
+            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
+            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
 
             // Update datasets
-            Object.keys(updates.datasets).forEach(key => {
+            Object.keys(updates.datasets || {}).forEach(key => {
                if (updates.datasets[key] === null) {
-                  delete chart.config.datasets[key];
-               } else if (!chart.config.datasets.hasOwnProperty(key)) {
-                  chart.config.datasets[key] = updates.datasets[key];
+                  delete chart.datasets[key];
+               } else if (!chart.datasets.hasOwnProperty(key)) {
+                  chart.datasets[key] = updates.datasets[key];
                } else {
-                  chart.config.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.config.datasets[key].values);
-                  chart.config.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.config.datasets[key].color);
-                  chart.config.datasets[key].borderRadius = updateConfigValue(`datasets.${key}.borderRadius`, chart.config.datasets[key].borderRadius);
+                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
+                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
+                  chart.datasets[key].borderRadius = updateConfigValue(`datasets.${key}.borderRadius`, chart.datasets[key].borderRadius);
                }
             })
 
             // LeftYAxis
-            chart.config.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.config.leftYAxis.min);
-            chart.config.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.config.leftYAxis.max);
-            chart.config.leftYAxis.format.number = updateConfigValue('leftYAxis.format.number', chart.config.leftYAxis.format.number);
-            chart.config.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.config.leftYAxis.format.prefix);
-            chart.config.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.config.leftYAxis.format.suffix);
+            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
+            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
+            chart.leftYAxis.format.number = updateConfigValue('leftYAxis.format.number', chart.leftYAxis.format.number);
+            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
+            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
+            chart.leftYAxis.format.isDate = updateConfigValue('leftYAxis.format.isDate', chart.leftYAxis.format.isDate);
 
             // BottomXAxis
-            chart.config.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.config.bottomXAxis.padding);
+            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
+            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
+            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
+            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
+            chart.bottomXAxis.format.isDate = updateConfigValue('bottomXAxis.format.isDate', chart.bottomXAxis.format.isDate);
          }
-         
+
          // Update dataset and dimensions
-         chart.config.container.dimensions = chart.config.container.el.node().getBoundingClientRect();
+         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
 
          // Update svg dimensions
-         chart.config.svg.el.attr('width', chart.config.container.dimensions.width).attr('height', chart.config.container.dimensions.height);
-         chart.config.axis.el.attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')');
+         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
+         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
 
          // Update dimensions and margins og main group
-         chart.config.g.dimensions.width = +chart.config.container.dimensions.width - chart.config.g.margin.left - chart.config.g.margin.right;
-         chart.config.g.dimensions.height = +chart.config.container.dimensions.height - chart.config.g.margin.top - chart.config.g.margin.bottom;
-         chart.config.g.el.attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-         
+         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
+         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
+         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
+
          // Update overlay dimensions
-         chart.config.overlay.el
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-            .attr('width', chart.config.g.dimensions.width)
-            .attr('height', chart.config.g.dimensions.height)
+         chart.overlay.el
+            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
+            .attr('width', chart.g.dimensions.width)
+            .attr('height', chart.g.dimensions.height)
 
          // Set min and max values for left axis
-         let leftYMin = chart.config.leftYAxis.min === 'auto'
-            ? d3.min(Object.values(chart.config.datasets).map(d => d3.min(d.values, v => v.y)))
-            : chart.config.leftYAxis.min
+         let leftYMin = chart.leftYAxis.min === 'auto'
+            ? d3.min(Object.values(chart.datasets).map(d => d3.min(d.values, v => v.y)))
+            : chart.leftYAxis.min
          leftYMin = d3.min([0, leftYMin]);
-         
-         let leftYMax = chart.config.leftYAxis.max === 'auto'
-            ? d3.max(Object.values(chart.config.datasets).map(d => d3.max(d.values, v => v.y)))
-            : chart.config.leftYAxis.max 
+
+         let leftYMax = chart.leftYAxis.max === 'auto'
+            ? d3.max(Object.values(chart.datasets).map(d => d3.max(d.values, v => v.y)))
+            : chart.leftYAxis.max 
          leftYMax = d3.max([0, leftYMax]);
 
          // Update left axis
          const leftYDomain = [leftYMin, leftYMax];
          const leftYScale = d3
             .scaleLinear() // Type of scale used for axis
-            .rangeRound([chart.config.g.dimensions.height, 0]) // The range of the axis
+            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
             .domain(leftYDomain) // All values on axis;
-         chart.config.leftYAxis.scale = leftYScale;
+         chart.leftYAxis.scale = leftYScale;
 
          // Draw axis with .call d3 function
-         const gridlineLength = -chart.config.g.dimensions.width;
+         const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3
             .axisLeft(leftYScale)
             .tickSize(gridlineLength)
-            .tickFormat(d => {
-               const formatter = chart.config.leftYAxis.format || {};
-               const formattedValue = `${formatter.prefix} ${d3.format(formatter.number)(d)} ${formatter.suffix}`
-               return formattedValue;
-            })
-         chart.config.leftYAxis.el.call(leftYAxis);
+            .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
+         chart.leftYAxis.el.call(leftYAxis);
 
          // Update bottom axis
          let bottomXDomain = []
-         Object.values(chart.config.datasets).forEach(d => d.values.forEach(v => {
+         Object.values(chart.datasets).forEach(d => d.values.forEach(v => {
             if (bottomXDomain.indexOf(v.x) === -1){bottomXDomain.push(v.x)}
          }));
-         
+
          bottomXDomain = bottomXDomain.sort((a,b) => {
             if (a < b) { return -1; }
             if (a > b) { return 1; }
@@ -170,17 +314,20 @@ charts.column = (chartConfig) => {
 
          const bottomXScale = d3
             .scaleBand() // Type of scale used for axis
-            .rangeRound([0, chart.config.g.dimensions.width]) // The range of the axis
+            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
-            .padding(chart.config.bottomXAxis.padding) // Padding between columns
-         const bottomXAxis = d3.axisBottom(bottomXScale);
-         chart.config.bottomXAxis.scale = bottomXScale;
-         chart.config.bottomXAxis.el.call(bottomXAxis);
+            .padding(chart.bottomXAxis.padding) // Padding between columns
+         const bottomXAxis = d3
+            .axisBottom(bottomXScale)
+            .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format))
+            
+         chart.bottomXAxis.scale = bottomXScale;
+         chart.bottomXAxis.el.call(bottomXAxis);
 
          // Create column data
          const columnGroupData = bottomXDomain.map(groupName => {
-            const groupValues = Object.keys(chart.config.datasets).map(datasetName => {
-               const dataset = chart.config.datasets[datasetName];
+            const groupValues = Object.keys(chart.datasets).map(datasetName => {
+               const dataset = chart.datasets[datasetName];
                const values = dataset.values;
                const matched = values.filter(d => d.x === groupName)[0] || {};
                return {
@@ -195,12 +342,12 @@ charts.column = (chartConfig) => {
             }
          })
 
-         const columnGroup = chart.config.g.el.selectAll(".column-group").data(columnGroupData, (d) => d.x);
+         const columnGroup = chart.g.el.selectAll(".column-group").data(columnGroupData, (d) => d.x);
 
          columnGroup.enter()
-				.append("g")
-				.attr("class", "column-group")
-				.attr("transform", d => "translate(" + bottomXScale(d.x) + ", 0)")
+            .append("g")
+            .attr("class", "column-group")
+            .attr("transform", d => "translate(" + bottomXScale(d.x) + ", 0)")
             .attr("width", bottomXScale.bandwidth())
             .selectAll(".column").data(d => d.values, k => k.x)
                .enter().append("rect")
@@ -256,141 +403,22 @@ charts.column = (chartConfig) => {
             .attr('x', d => bottomXScale(d.x))
 
          // Remove deleting columns 
-         existingColumns.exit().remove();
-            
-      },
-      mouseOver: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseover', () => callback())
-      },
-      mouseOut: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseout', () => callback())
-      },
-      mouseMove: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseover', () => {})
-            .on('mouseout', () => {})
-            .on('mousemove', (d, i, nodes) => {
-
-               // Get coordinates of mouse
-               const mouseCoordinates = d3.mouse(nodes[i]);
-               const mouseX = mouseCoordinates[0];
-               const mouseY = mouseCoordinates[1];
-
-               // Get all values on x axis
-               const xValues = chart.config.bottomXAxis.scale.domain();
-
-               // Calculate center points of all columns
-               const columnCenterPoints = xValues.map(d => chart.config.bottomXAxis.scale(d) + (chart.config.bottomXAxis.scale.bandwidth() / 2));
-
-               // Get distances to x mouse position
-               const distancesToMouseX = xValues.map((d, i) => Math.abs(columnCenterPoints[i] - mouseX));
-
-               // Calculate closest column
-               let closestColumnIndex = 0;
-               let closestDistance = distancesToMouseX[0];
-               distancesToMouseX.forEach((d, i) => {
-                  if (d < closestDistance) {
-                     closestColumnIndex = i;
-                     closestDistance = d;
-                  }
-               })
-
-               const closestGroup = xValues[closestColumnIndex];
-               const closestValues = Object.values(chart.config.datasets).map(d => {
-                  const groupValues = d.values.filter(d => d.x === closestGroup) || [];
-                  const firstMatch = groupValues[0] || {};
-                  return firstMatch.y;
-               })
-
-               // Send information about hover in callback
-               callback({
-                  name: closestGroup,
-                  left: columnCenterPoints[closestColumnIndex] + chart.config.g.margin.left,
-                  top: mouseY + chart.config.g.margin.top,
-                  y: closestValues,
-               })
-            })
-      },
-      delete: () => {
-         chart.config.svg.el.remove();
+         existingColumns.exit().remove();   
       }
-   };
-
-   chart.init();
-   chart.update(chartConfig);
-   return chart;
-};
+      chart.update(update);
+      return chart;
+   },
 
 
-/** 
- * @name groupedColumn
- * Scale: scaleBand
- * Axes: left, bottom
- **/
+   /** 
+    * @name groupedColumn
+    * Scale: scaleBand
+    * Axes: left, bottom
+    **/
 
-charts.groupedColumn = (chartConfig) => {
-
-   // Chart object with relevant methods
-   const chart = {
-      config: {
-         container: {id: chartConfig.containerId, el: '', dimensions: {}},
-         axis: {el: ''},
-         overlay: {el: ''},
-         svg: {dimensions: {}, el: ''},
-         g: {dimensions: {}, el: '', clip: '', margin: {top: 32, right: 32, bottom: 32, left: 50}},
-         dataset: {name: '', values: [], color: '', borderRadius: ''},
-         bottomXAxis: {el: '', padding: 0.1},
-         leftYAxis: {el: '', min: 'auto', max: 'auto', format: {number: ',.0f', prefix: '', suffix: ''}}
-      },
-      init: () => {
-
-         // Get a reference to the container and store dimensions
-         chart.config.container.el = d3.select(chart.config.container.id);
-         chart.config.container.dimensions = chart.config.container.el.node().getBoundingClientRect();
-
-         // Create svg element
-         chart.config.svg.el = chart.config.container.el.append('svg')
-            .attr('class', 'chart-svg')
-            .attr('width', chart.config.container.dimensions.width)
-            .attr('height', chart.config.container.dimensions.height);
-
-         // Create dimensions for main group
-         chart.config.g.dimensions.width = +chart.config.container.dimensions.width - chart.config.g.margin.left - chart.config.g.margin.right;
-         chart.config.g.dimensions.height = +chart.config.container.dimensions.height - chart.config.g.margin.top - chart.config.g.margin.bottom;
-
-         // Create a group for axis elements
-         chart.config.axis.el = chart.config.svg.el.append('g')
-            .attr('class', 'axis-group')
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-
-         // Create main group
-         chart.config.g.el = chart.config.svg.el.append('g')
-            .attr('class', 'chart-group')
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-
-         // Create x axis
-         chart.config.bottomXAxis.el = chart.config.axis.el.append('g')
-            .attr('class', 'bottom-x-axis')
-            .attr('transform', 'translate(0,' + chart.config.g.dimensions.height + ')');
-
-         // Create y axis
-         chart.config.leftYAxis.el = chart.config.axis.el.append('g')
-            .attr('class', 'left-y-axis');
-
-         // Create hover overlay
-         chart.config.overlay.el = chart.config.svg.el.append('rect')
-            .attr('class', 'overlay')
-            .style('opacity', 0)
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-            .attr('width', chart.config.g.dimensions.width)
-            .attr('height', chart.config.g.dimensions.height)	
-
-      },
-      update: (updates) => {
-
-
+   groupedColumn: (elementId, update) => {
+      const chart = utils.baseChart(elementId);
+      chart.update = (updates) => {
          // Define all possible updates
          if (updates !== undefined) {
 
@@ -400,76 +428,90 @@ charts.groupedColumn = (chartConfig) => {
             }
 
             // Dimension
-            chart.config.g.margin.top = updateConfigValue('margin.top', chart.config.g.margin.top);
-            chart.config.g.margin.right = updateConfigValue('margin.right', chart.config.g.margin.right);
-            chart.config.g.margin.bottom = updateConfigValue('margin.bottom', chart.config.g.margin.bottom);
-            chart.config.g.margin.left = updateConfigValue('margin.left', chart.config.g.margin.left);
+            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
+            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
+            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
+            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
 
-            chart.config.datasets = updateConfigValue('datasets', chart.config.datasets);
+            // Update datasets
+            Object.keys(updates.datasets || {}).forEach(key => {
+               if (updates.datasets[key] === null) {
+                  delete chart.datasets[key];
+               } else if (!chart.datasets.hasOwnProperty(key)) {
+                  chart.datasets[key] = updates.datasets[key];
+               } else {
+                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
+                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
+                  chart.datasets[key].borderRadius = updateConfigValue(`datasets.${key}.borderRadius`, chart.datasets[key].borderRadius);
+               }
+            })
             
             // LeftYAxis
-            chart.config.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.config.leftYAxis.min);
-            chart.config.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.config.leftYAxis.max);
-            chart.config.leftYAxis.format.number = updateConfigValue('leftYAxis.format.number', chart.config.leftYAxis.format.number);
-            chart.config.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.config.leftYAxis.format.prefix);
-            chart.config.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.config.leftYAxis.format.suffix);
+            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
+            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
+            chart.leftYAxis.format.string = updateConfigValue('leftYAxis.format.string', chart.leftYAxis.format.string);
+            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
+            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
+            chart.leftYAxis.format.isDate = updateConfigValue('leftYAxis.format.isDate', chart.leftYAxis.format.isDate);
 
             // BottomXAxis
-            chart.config.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.config.bottomXAxis.padding);
+            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
+            chart.bottomXAxis.min = updateConfigValue('bottomXAxis.min', chart.bottomXAxis.min);
+            chart.bottomXAxis.max = updateConfigValue('bottomXAxis.max', chart.bottomXAxis.max);
+            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
+            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
+            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
+            chart.bottomXAxis.format.isDate = updateConfigValue('bottomXAxis.format.isDate', chart.bottomXAxis.format.isDate);
          }
          
          // Update dataset and dimensions
-         chart.config.container.dimensions = chart.config.container.el.node().getBoundingClientRect();
+         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
 
          // Update svg dimensions
-         chart.config.svg.el.attr('width', chart.config.container.dimensions.width).attr('height', chart.config.container.dimensions.height);
-         chart.config.axis.el.attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')');
+         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
+         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
 
          // Update dimensions and margins og main group
-         chart.config.g.dimensions.width = +chart.config.container.dimensions.width - chart.config.g.margin.left - chart.config.g.margin.right;
-         chart.config.g.dimensions.height = +chart.config.container.dimensions.height - chart.config.g.margin.top - chart.config.g.margin.bottom;
-         chart.config.g.el.attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
+         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
+         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
+         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
          
          // Update overlay dimensions
-         chart.config.overlay.el
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-            .attr('width', chart.config.g.dimensions.width)
-            .attr('height', chart.config.g.dimensions.height)
+         chart.overlay.el
+            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
+            .attr('width', chart.g.dimensions.width)
+            .attr('height', chart.g.dimensions.height)
 
          // Set min and max values for left axis
-         let leftYMin = chart.config.leftYAxis.min === 'auto'
-            ? d3.min(Object.values(chart.config.datasets).map(d => d3.max(d.values, d => d.y)))
-            : chart.config.leftYAxis.min; 
+         let leftYMin = chart.leftYAxis.min === 'auto'
+            ? d3.min(Object.values(chart.datasets).map(d => d3.max(d.values, d => d.y)))
+            : chart.leftYAxis.min; 
          leftYMin = d3.min([0, leftYMin]);
 
-         let leftYMax = chart.config.leftYAxis.max === 'auto'
-            ? d3.max(Object.values(chart.config.datasets).map(d => d3.max(d.values, d => d.y)))
-            : chart.config.leftYAxis.max;
+         let leftYMax = chart.leftYAxis.max === 'auto'
+            ? d3.max(Object.values(chart.datasets).map(d => d3.max(d.values, d => d.y)))
+            : chart.leftYAxis.max;
          leftYMax = d3.max([0, leftYMax]);
 
          // Update left axis
          const leftYDomain = [leftYMin, leftYMax];
          const leftYScale = d3
             .scaleLinear() // Type of scale used for axis
-            .rangeRound([chart.config.g.dimensions.height, 0]) // The range of the axis
+            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
             .domain(leftYDomain) // All values on axis;
-         chart.config.leftYAxis.scale = leftYScale;
+         chart.leftYAxis.scale = leftYScale;
 
          // Draw axis with .call d3 function
-         const gridlineLength = -chart.config.g.dimensions.width;
+         const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3
             .axisLeft(leftYScale)
             .tickSize(gridlineLength)
-            .tickFormat(d => {
-               const formatter = chart.config.leftYAxis.format || {};
-               const formattedValue = `${formatter.prefix} ${d3.format(formatter.number)(d)} ${formatter.suffix}`
-               return formattedValue;
-            })
-         chart.config.leftYAxis.el.call(leftYAxis);
+            .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
+         chart.leftYAxis.el.call(leftYAxis);
 
          // Get all x values from all datasets
          let bottomXDomain = []
-         Object.values(chart.config.datasets).forEach(d => d.values.forEach(v => {
+         Object.values(chart.datasets).forEach(d => d.values.forEach(v => {
             if (bottomXDomain.indexOf(v.x) === -1){
                bottomXDomain.push(v.x)
             }
@@ -483,14 +525,17 @@ charts.groupedColumn = (chartConfig) => {
 
          const bottomXScale = d3
             .scaleBand() // Type of scale used for axis
-            .rangeRound([0, chart.config.g.dimensions.width]) // The range of the axis
+            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
-            .padding(chart.config.bottomXAxis.padding) // Padding between columns
-         const bottomXAxis = d3.axisBottom(bottomXScale);
-         chart.config.bottomXAxis.scale = bottomXScale;
-         chart.config.bottomXAxis.el.call(bottomXAxis);
+            .padding(chart.bottomXAxis.padding) // Padding between columns
+         const bottomXAxis = d3
+            .axisBottom(bottomXScale)
+            .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
 
-         let bottomXGroupDomain = Object.keys(chart.config.datasets);
+         chart.bottomXAxis.scale = bottomXScale;
+         chart.bottomXAxis.el.call(bottomXAxis);
+
+         let bottomXGroupDomain = Object.keys(chart.datasets);
          const bottomXGroupScale = d3
             .scaleBand() // Type of scale used for axis
             .rangeRound([0, bottomXScale.bandwidth()]) // The range of the axis
@@ -499,8 +544,8 @@ charts.groupedColumn = (chartConfig) => {
 
          // Create column data
          const columnGroupData = bottomXDomain.map(groupName => {
-            const groupValues = Object.keys(chart.config.datasets).map(datasetName => {
-               const dataset = chart.config.datasets[datasetName];
+            const groupValues = Object.keys(chart.datasets).map(datasetName => {
+               const dataset = chart.datasets[datasetName];
                const values = dataset.values;
                const matched = values.filter(d => d.x === groupName)[0] || {};
                return {
@@ -515,12 +560,12 @@ charts.groupedColumn = (chartConfig) => {
             }
          })
 
-         const columnGroup = chart.config.g.el.selectAll(".column-group").data(columnGroupData, (d) => d.x);
+         const columnGroup = chart.g.el.selectAll(".column-group").data(columnGroupData, (d) => d.x);
 
          columnGroup.enter()
-				.append("g")
-				.attr("class", "column-group")
-				.attr("transform", d => "translate(" + bottomXScale(d.x) + ", 0)")
+            .append("g")
+            .attr("class", "column-group")
+            .attr("transform", d => "translate(" + bottomXScale(d.x) + ", 0)")
             .attr("width", bottomXScale.bandwidth())
             .selectAll(".column").data(d => d.values, k => k.x)
                .enter().append("rect")
@@ -574,139 +619,21 @@ charts.groupedColumn = (chartConfig) => {
             .attr('x', d => bottomXGroupScale(d.x))
 
          existingColumns.exit().remove();
-            
-      },
-      mouseOver: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseover', () => callback())
-      },
-      mouseOut: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseout', () => callback())
-      },
-      mouseMove: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseover', () => {})
-            .on('mouseout', () => {})
-            .on('mousemove', (d, i, nodes) => {
-
-               // Get coordinates of mouse
-               const mouseCoordinates = d3.mouse(nodes[i]);
-               const mouseX = mouseCoordinates[0];
-               const mouseY = mouseCoordinates[1];
-
-               // Get all values on x axis
-               const xValues = chart.config.bottomXAxis.scale.domain();
-
-               // Calculate center points of all columns
-               const columnCenterPoints = xValues.map(d => chart.config.bottomXAxis.scale(d) + (chart.config.bottomXAxis.scale.bandwidth() / 2));
-
-               // Get distances to x mouse position
-               const distancesToMouseX = xValues.map((d, i) => Math.abs(columnCenterPoints[i] - mouseX));
-
-               // Calculate closest column
-               let closestColumnIndex = 0;
-               let closestDistance = distancesToMouseX[0];
-               distancesToMouseX.forEach((d, i) => {
-                  if (d < closestDistance) {
-                     closestColumnIndex = i;
-                     closestDistance = d;
-                  }
-               })
-
-               const closestGroup = xValues[closestColumnIndex];
-               const closestValues = Object.values(chart.config.datasets).map(d => {
-                  const groupValues = d.values.filter(d => d.x === closestGroup) || [];
-                  const firstMatch = groupValues[0] || {};
-                  return firstMatch.y;
-               })
-
-               // Send information about hover in callback
-               callback({
-                  name: closestGroup,
-                  left: columnCenterPoints[closestColumnIndex] + chart.config.g.margin.left,
-                  top: mouseY + chart.config.g.margin.top,
-                  y: closestValues,
-               })
-            })
-      },
-      delete: () => {
-         chart.config.svg.el.remove();
       }
-   };
+      chart.update(update);
+      return chart;
+   },
 
-   chart.init();
-   chart.update(chartConfig);
-   return chart;
-};
-
-/** 
- * @name stackedColumn
- * Scale: scaleBand
- * Axes: left, bottom
- **/
+   /** 
+    * @name stackedColumn
+    * Scale: scaleBand
+    * Axes: left, bottom
+    **/
 
 
-charts.stackedColumn = (chartConfig) => {
-
-   // Chart object with relevant methods
-   const chart = {
-      config: {
-         container: {id: chartConfig.containerId, el: '', dimensions: {}},
-         axis: {el: ''},
-         overlay: {el: ''},
-         svg: {dimensions: {}, el: ''},
-         g: {dimensions: {}, el: '', clip: '', margin: {top: 32, right: 32, bottom: 32, left: 50}},
-         datasets: {},
-         bottomXAxis: {el: '', padding: 0.1},
-         leftYAxis: {el: '', min: 'auto', max: 'auto', format: {number: ',.0f', prefix: '', suffix: ''}}
-      },
-      init: () => {
-
-         // Get a reference to the container and store dimensions
-         chart.config.container.el = d3.select(chart.config.container.id);
-         chart.config.container.dimensions = chart.config.container.el.node().getBoundingClientRect();
-
-         // Create svg element
-         chart.config.svg.el = chart.config.container.el.append('svg')
-            .attr('class', 'chart-svg')
-            .attr('width', chart.config.container.dimensions.width)
-            .attr('height', chart.config.container.dimensions.height);
-
-         // Create dimensions for main group
-         chart.config.g.dimensions.width = +chart.config.container.dimensions.width - chart.config.g.margin.left - chart.config.g.margin.right;
-         chart.config.g.dimensions.height = +chart.config.container.dimensions.height - chart.config.g.margin.top - chart.config.g.margin.bottom;
-
-         // Create a group for axis elements
-         chart.config.axis.el = chart.config.svg.el.append('g')
-            .attr('class', 'axis-group')
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-
-         // Create main group
-         chart.config.g.el = chart.config.svg.el.append('g')
-            .attr('class', 'chart-group')
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-
-         // Create x axis
-         chart.config.bottomXAxis.el = chart.config.axis.el.append('g')
-            .attr('class', 'bottom-x-axis')
-            .attr('transform', 'translate(0,' + chart.config.g.dimensions.height + ')');
-
-         // Create y axis
-         chart.config.leftYAxis.el = chart.config.axis.el.append('g')
-            .attr('class', 'left-y-axis');
-
-         // Create hover overlay
-         chart.config.overlay.el = chart.config.svg.el.append('rect')
-            .attr('class', 'overlay')
-            .style('opacity', 0)
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-            .attr('width', chart.config.g.dimensions.width)
-            .attr('height', chart.config.g.dimensions.height)	
-
-      },
-      update: (updates) => {
-
+   stackedColumn: (elementId, update) => {
+      const chart = utils.baseChart(elementId);
+      chart.update = (updates) => {
          // Define all possible updates
          if (updates !== undefined) {
 
@@ -716,56 +643,61 @@ charts.stackedColumn = (chartConfig) => {
             }
 
             // Dimension
-            chart.config.g.margin.top = updateConfigValue('margin.top', chart.config.g.margin.top);
-            chart.config.g.margin.right = updateConfigValue('margin.right', chart.config.g.margin.right);
-            chart.config.g.margin.bottom = updateConfigValue('margin.bottom', chart.config.g.margin.bottom);
-            chart.config.g.margin.left = updateConfigValue('margin.left', chart.config.g.margin.left);
+            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
+            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
+            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
+            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
 
             // Update datasets
             Object.keys(updates.datasets).forEach(key => {
                if (updates.datasets[key] === null) {
-                  delete chart.config.datasets[key];
-               } else if (!chart.config.datasets.hasOwnProperty(key)) {
-                  chart.config.datasets[key] = updates.datasets[key];
+                  delete chart.datasets[key];
+               } else if (!chart.datasets.hasOwnProperty(key)) {
+                  chart.datasets[key] = updates.datasets[key];
                } else {
-                  chart.config.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.config.datasets[key].values);
-                  chart.config.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.config.datasets[key].color);
-                  chart.config.datasets[key].borderRadius = updateConfigValue(`datasets.${key}.borderRadius`, chart.config.datasets[key].borderRadius);
+                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
+                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
+                  chart.datasets[key].borderRadius = updateConfigValue(`datasets.${key}.borderRadius`, chart.datasets[key].borderRadius);
                }
             })
 
             // LeftYAxis
-            chart.config.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.config.leftYAxis.min);
-            chart.config.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.config.leftYAxis.max);
-            chart.config.leftYAxis.format.number = updateConfigValue('leftYAxis.format.number', chart.config.leftYAxis.format.number);
-            chart.config.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.config.leftYAxis.format.prefix);
-            chart.config.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.config.leftYAxis.format.suffix);
+            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
+            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
+            chart.leftYAxis.format.string = updateConfigValue('leftYAxis.format.string', chart.leftYAxis.format.string);
+            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
+            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
 
             // BottomXAxis
-            chart.config.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.config.bottomXAxis.padding);
+            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
+            chart.bottomXAxis.min = updateConfigValue('bottomXAxis.min', chart.bottomXAxis.min);
+            chart.bottomXAxis.max = updateConfigValue('bottomXAxis.max', chart.bottomXAxis.max);
+            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
+            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
+            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
          }
          
          // Update dataset and dimensions
-         chart.config.container.dimensions = chart.config.container.el.node().getBoundingClientRect();
+         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
 
          // Update svg dimensions
-         chart.config.svg.el.attr('width', chart.config.container.dimensions.width).attr('height', chart.config.container.dimensions.height);
-         chart.config.axis.el.attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')');
+         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
+         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
 
          // Update dimensions and margins og main group
-         chart.config.g.dimensions.width = +chart.config.container.dimensions.width - chart.config.g.margin.left - chart.config.g.margin.right;
-         chart.config.g.dimensions.height = +chart.config.container.dimensions.height - chart.config.g.margin.top - chart.config.g.margin.bottom;
-         chart.config.g.el.attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
+         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
+         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
+         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
          
          // Update overlay dimensions
-         chart.config.overlay.el
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-            .attr('width', chart.config.g.dimensions.width)
-            .attr('height', chart.config.g.dimensions.height)
+         chart.overlay.el
+            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
+            .attr('width', chart.g.dimensions.width)
+            .attr('height', chart.g.dimensions.height)
 
          // Update bottom axis
          let bottomXDomain = []
-         Object.values(chart.config.datasets).forEach(d => d.values.forEach(v => {
+         Object.values(chart.datasets).forEach(d => d.values.forEach(v => {
             if (bottomXDomain.indexOf(v.x) === -1){bottomXDomain.push(v.x)}
          }));
          
@@ -777,18 +709,21 @@ charts.stackedColumn = (chartConfig) => {
 
          const bottomXScale = d3
             .scaleBand() // Type of scale used for axis
-            .rangeRound([0, chart.config.g.dimensions.width]) // The range of the axis
+            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
-            .padding(chart.config.bottomXAxis.padding) // Padding between columns
-         const bottomXAxis = d3.axisBottom(bottomXScale);
-         chart.config.bottomXAxis.scale = bottomXScale;
-         chart.config.bottomXAxis.el.call(bottomXAxis);
+            .padding(chart.bottomXAxis.padding) // Padding between columns
+         const bottomXAxis = d3
+            .axisBottom(bottomXScale)
+            .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
+
+         chart.bottomXAxis.scale = bottomXScale;
+         chart.bottomXAxis.el.call(bottomXAxis);
 
          // Stacked Data
          const columnGroupData = bottomXDomain.map(groupName => {
-            const datasetNames = Object.keys(chart.config.datasets);
+            const datasetNames = Object.keys(chart.datasets);
             const groupValues = datasetNames.map(datasetName => {
-               const dataset = chart.config.datasets[datasetName];
+               const dataset = chart.datasets[datasetName];
                const values = dataset.values;
                const matched = values.filter(d => d.x === groupName)[0] || {};
                return {
@@ -821,37 +756,33 @@ charts.stackedColumn = (chartConfig) => {
 
          // Set min and max values for left axis
          let leftYMin = 0
-         let leftYMax = chart.config.leftYAxis.max === 'auto'
+         let leftYMax = chart.leftYAxis.max === 'auto'
             ? d3.max(groupTotals)
-            : chart.config.leftYAxis.max 
+            : chart.leftYAxis.max 
          leftYMax = d3.max([0, leftYMax]);
 
          // Update left axis
          const leftYDomain = [leftYMin, leftYMax];
          const leftYScale = d3
             .scaleLinear() // Type of scale used for axis
-            .rangeRound([chart.config.g.dimensions.height, 0]) // The range of the axis
+            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
             .domain(leftYDomain) // All values on axis;
-         chart.config.leftYAxis.scale = leftYScale;
+         chart.leftYAxis.scale = leftYScale;
 
          // Draw axis with .call d3 function
-         const gridlineLength = -chart.config.g.dimensions.width;
+         const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3
             .axisLeft(leftYScale)
             .tickSize(gridlineLength)
-            .tickFormat(d => {
-               const formatter = chart.config.leftYAxis.format || {};
-               const formattedValue = `${formatter.prefix} ${d3.format(formatter.number)(d)} ${formatter.suffix}`
-               return formattedValue;
-            })
-         chart.config.leftYAxis.el.call(leftYAxis);
+            .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
+         chart.leftYAxis.el.call(leftYAxis);
 
-         const columnGroup = chart.config.g.el.selectAll(".column-group").data(columnGroupData, (d) => d.x);
+         const columnGroup = chart.g.el.selectAll(".column-group").data(columnGroupData, (d) => d.x);
 
          columnGroup.enter()
-				.append("g")
-				.attr("class", "column-group")
-				.attr("transform", d => "translate(" + bottomXScale(d.x) + ", 0)")
+            .append("g")
+            .attr("class", "column-group")
+            .attr("transform", d => "translate(" + bottomXScale(d.x) + ", 0)")
             .attr("width", bottomXScale.bandwidth())
             .selectAll(".column").data(d => d.values, k => k.x)
                .enter().append("rect")
@@ -893,139 +824,23 @@ charts.stackedColumn = (chartConfig) => {
 
          // Remove deleting columns 
          existingColumns.exit().remove();
-            
-      },
-      mouseOver: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseover', () => callback())
-      },
-      mouseOut: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseout', () => callback())
-      },
-      mouseMove: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseover', () => {})
-            .on('mouseout', () => {})
-            .on('mousemove', (d, i, nodes) => {
 
-               // Get coordinates of mouse
-               const mouseCoordinates = d3.mouse(nodes[i]);
-               const mouseX = mouseCoordinates[0];
-               const mouseY = mouseCoordinates[1];
-
-               // Get all values on x axis
-               const xValues = chart.config.bottomXAxis.scale.domain();
-
-               // Calculate center points of all columns
-               const columnCenterPoints = xValues.map(d => chart.config.bottomXAxis.scale(d) + (chart.config.bottomXAxis.scale.bandwidth() / 2));
-
-               // Get distances to x mouse position
-               const distancesToMouseX = xValues.map((d, i) => Math.abs(columnCenterPoints[i] - mouseX));
-
-               // Calculate closest column
-               let closestColumnIndex = 0;
-               let closestDistance = distancesToMouseX[0];
-               distancesToMouseX.forEach((d, i) => {
-                  if (d < closestDistance) {
-                     closestColumnIndex = i;
-                     closestDistance = d;
-                  }
-               })
-
-               const closestGroup = xValues[closestColumnIndex];
-               const closestValues = Object.values(chart.config.datasets).map(d => {
-                  const groupValues = d.values.filter(d => d.x === closestGroup) || [];
-                  const firstMatch = groupValues[0] || {};
-                  return firstMatch.y;
-               })
-
-               // Send information about hover in callback
-               callback({
-                  name: closestGroup,
-                  left: columnCenterPoints[closestColumnIndex] + chart.config.g.margin.left,
-                  top: mouseY + chart.config.g.margin.top,
-                  y: closestValues,
-               })
-            })
-      },
-      delete: () => {
-         chart.config.svg.el.remove();
       }
-   };
-
-   chart.init();
-   chart.update(chartConfig);
-   return chart;
-};
+      chart.update(update);
+      return chart;
+   },
 
 
-/** 
- * @name line
- * Scale: scalePoint
- * Axes: left, bottom
- **/
+   /** 
+    * @name line
+    * Scale: scalePoint
+    * Axes: left, bottom
+    **/
 
-charts.line = (chartConfig) => {
-
-   // Chart object with relevant methods
-   const chart = {
-      config: {
-         container: {id: chartConfig.containerId, el: '', dimensions: {}},
-         axis: {el: ''},
-         overlay: {el: ''},
-         svg: {dimensions: {}, el: ''},
-         g: {dimensions: {}, el: '', clip: '', margin: {top: 32, right: 32, bottom: 32, left: 50}},
-         datasets: {},
-         bottomXAxis: {el: '', padding: 0.1},
-         leftYAxis: {el: '', min: 'auto', max: 'auto', format: {number: ',.0f', prefix: '', suffix: ''}}
-      },
-      init: () => {
-
-         // Get a reference to the container and store dimensions
-         chart.config.container.el = d3.select(chart.config.container.id);
-         chart.config.container.dimensions = chart.config.container.el.node().getBoundingClientRect();
-
-         // Create svg element
-         chart.config.svg.el = chart.config.container.el.append('svg')
-            .attr('class', 'chart-svg')
-            .attr('width', chart.config.container.dimensions.width)
-            .attr('height', chart.config.container.dimensions.height);
-
-         // Create dimensions for main group
-         chart.config.g.dimensions.width = +chart.config.container.dimensions.width - chart.config.g.margin.left - chart.config.g.margin.right;
-         chart.config.g.dimensions.height = +chart.config.container.dimensions.height - chart.config.g.margin.top - chart.config.g.margin.bottom;
-
-         // Create a group for axis elements
-         chart.config.axis.el = chart.config.svg.el.append('g')
-            .attr('class', 'axis-group')
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-
-         // Create main group
-         chart.config.g.el = chart.config.svg.el.append('g')
-            .attr('class', 'chart-group')
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-
-         // Create x axis
-         chart.config.bottomXAxis.el = chart.config.axis.el.append('g')
-            .attr('class', 'bottom-x-axis')
-            .attr('transform', 'translate(0,' + chart.config.g.dimensions.height + ')');
-
-         // Create y axis
-         chart.config.leftYAxis.el = chart.config.axis.el.append('g')
-            .attr('class', 'left-y-axis');
-
-         // Create hover overlay
-         chart.config.overlay.el = chart.config.svg.el.append('rect')
-            .attr('class', 'overlay')
-            .style('opacity', 0)
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-            .attr('width', chart.config.g.dimensions.width)
-            .attr('height', chart.config.g.dimensions.height)	
-
-      },
-      update: (updates) => {
-
+   line: (elementId, update) => {
+      const chart = utils.baseChart(elementId);
+      chart.update = (updates) => {
+      
          // Define all possible updates
          if (updates !== undefined) {
 
@@ -1035,87 +850,88 @@ charts.line = (chartConfig) => {
             }
 
             // Dimension
-            chart.config.g.margin.top = updateConfigValue('margin.top', chart.config.g.margin.top);
-            chart.config.g.margin.right = updateConfigValue('margin.right', chart.config.g.margin.right);
-            chart.config.g.margin.bottom = updateConfigValue('margin.bottom', chart.config.g.margin.bottom);
-            chart.config.g.margin.left = updateConfigValue('margin.left', chart.config.g.margin.left);
+            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
+            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
+            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
+            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
 
             // Update datasets
             Object.keys(updates.datasets).forEach(key => {
                if (updates.datasets[key] === null) {
-                  delete chart.config.datasets[key];
-               } else if (!chart.config.datasets.hasOwnProperty(key)) {
-                  chart.config.datasets[key] = updates.datasets[key];
+                  delete chart.datasets[key];
+               } else if (!chart.datasets.hasOwnProperty(key)) {
+                  chart.datasets[key] = updates.datasets[key];
                } else {
-                  chart.config.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.config.datasets[key].values);
-                  chart.config.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.config.datasets[key].color);
-                  chart.config.datasets[key].radius = updateConfigValue(`datasets.${key}.radius`, chart.config.datasets[key].radius);
+                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
+                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
+                  chart.datasets[key].radius = updateConfigValue(`datasets.${key}.radius`, chart.datasets[key].radius);
                }
             })
 
             // LeftYAxis
-            chart.config.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.config.leftYAxis.min);
-            chart.config.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.config.leftYAxis.max);
-            chart.config.leftYAxis.format.number = updateConfigValue('leftYAxis.format.number', chart.config.leftYAxis.format.number);
-            chart.config.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.config.leftYAxis.format.prefix);
-            chart.config.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.config.leftYAxis.format.suffix);
+            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
+            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
+            chart.leftYAxis.format.string = updateConfigValue('leftYAxis.format.string', chart.leftYAxis.format.string);
+            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
+            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
 
             // BottomXAxis
-            chart.config.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.config.bottomXAxis.padding);
+            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
+            chart.bottomXAxis.min = updateConfigValue('bottomXAxis.min', chart.bottomXAxis.min);
+            chart.bottomXAxis.max = updateConfigValue('bottomXAxis.max', chart.bottomXAxis.max);
+            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
+            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
+            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
          }
 
          // Update dataset and dimensions
-         chart.config.container.dimensions = chart.config.container.el.node().getBoundingClientRect();
+         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
 
          // Update svg dimensions
-         chart.config.svg.el.attr('width', chart.config.container.dimensions.width).attr('height', chart.config.container.dimensions.height);
-         chart.config.axis.el.attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')');
+         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
+         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
 
          // Update dimensions and margins og main group
-         chart.config.g.dimensions.width = +chart.config.container.dimensions.width - chart.config.g.margin.left - chart.config.g.margin.right;
-         chart.config.g.dimensions.height = +chart.config.container.dimensions.height - chart.config.g.margin.top - chart.config.g.margin.bottom;
-         chart.config.g.el.attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
+         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
+         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
+         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
          
          // Update overlay dimensions
-         chart.config.overlay.el
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-            .attr('width', chart.config.g.dimensions.width)
-            .attr('height', chart.config.g.dimensions.height)
+         chart.overlay.el
+            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
+            .attr('width', chart.g.dimensions.width)
+            .attr('height', chart.g.dimensions.height)
 
          // Set min and max values for left axis
-         let leftYMin = chart.config.leftYAxis.min === 'auto'
-            ? d3.min(Object.values(chart.config.datasets).map(d => d3.min(d.values, v => v.y)))
-            : chart.config.leftYAxis.min
+         let leftYMin = chart.leftYAxis.min === 'auto'
+            ? d3.min(Object.values(chart.datasets).map(d => d3.min(d.values, v => v.y)))
+            : chart.leftYAxis.min
          leftYMin = d3.min([0, leftYMin]);
          
-         let leftYMax = chart.config.leftYAxis.max === 'auto'
-            ? d3.max(Object.values(chart.config.datasets).map(d => d3.max(d.values, v => v.y)))
-            : chart.config.leftYAxis.max 
+         let leftYMax = chart.leftYAxis.max === 'auto'
+            ? d3.max(Object.values(chart.datasets).map(d => d3.max(d.values, v => v.y)))
+            : chart.leftYAxis.max 
          leftYMax = d3.max([0, leftYMax]);
 
          // Update left axis
          const leftYDomain = [leftYMin, leftYMax];
          const leftYScale = d3
             .scaleLinear() // Type of scale used for axis
-            .rangeRound([chart.config.g.dimensions.height, 0]) // The range of the axis
+            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
             .domain(leftYDomain) // All values on axis;
-         chart.config.leftYAxis.scale = leftYScale;
+         chart.leftYAxis.scale = leftYScale;
 
          // Draw axis with .call d3 function
-         const gridlineLength = -chart.config.g.dimensions.width;
+         const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3
             .axisLeft(leftYScale)
             .tickSize(gridlineLength)
-            .tickFormat(d => {
-               const formatter = chart.config.leftYAxis.format || {};
-               const formattedValue = `${formatter.prefix} ${d3.format(formatter.number)(d)} ${formatter.suffix}`
-               return formattedValue;
-            })
-         chart.config.leftYAxis.el.call(leftYAxis);
+            .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
+         chart.leftYAxis.el.call(leftYAxis);
 
          // Update bottom axis
          let bottomXDomain = []
-         Object.values(chart.config.datasets).forEach(d => d.values.forEach(v => {
+         Object.values(chart.datasets).forEach(d => d.values.forEach(v => {
             if (bottomXDomain.indexOf(v.x) === -1){bottomXDomain.push(v.x)}
          }));
          
@@ -1127,23 +943,25 @@ charts.line = (chartConfig) => {
 
          const bottomXScale = d3
             .scalePoint() // Type of scale used for axis
-            .rangeRound([0, chart.config.g.dimensions.width]) // The range of the axis
+            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
-         const bottomXAxis = d3.axisBottom(bottomXScale);
-         chart.config.bottomXAxis.scale = bottomXScale;
-         chart.config.bottomXAxis.el.call(bottomXAxis);
+         const bottomXAxis = d3
+            .axisBottom(bottomXScale)
+            .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
+         chart.bottomXAxis.scale = bottomXScale;
+         chart.bottomXAxis.el.call(bottomXAxis);
 
          const createLine = (dataset) => {
             const line = d3.line()
                .x(d => bottomXScale(d.x))
                .y(d => leftYScale(d.y))
                .defined(d => { return d.y !== undefined})
-               .curve(dataset.smooth === true ? d3.curveCatmullRom : d3.curveLinear)
+               .curve(dataset.isSmooth === true ? d3.curveCatmullRom : d3.curveLinear)
             return line(dataset.values);
          }
 
-         const seriesData = Object.keys(chart.config.datasets).map(d => {
-            const dataset = chart.config.datasets[d];
+         const seriesData = Object.keys(chart.datasets).map(d => {
+            const dataset = chart.datasets[d];
             dataset.name = d;
             dataset.values = bottomXDomain.map(xValue => {
                const xMatches = dataset.values.filter(d => d.x === xValue); 
@@ -1156,7 +974,7 @@ charts.line = (chartConfig) => {
 
          //console.log(seriesData);
 
-         const series = chart.config.g.el.selectAll(".series-group").data(seriesData, (d) => d.name);
+         const series = chart.g.el.selectAll(".series-group").data(seriesData, (d) => d.name);
 
          const newSeries = series.enter().append("g")
             .attr("class", "series-group")
@@ -1197,135 +1015,21 @@ charts.line = (chartConfig) => {
             .attr("d", d => createLine(d))
 
          series.exit().remove();
-
-      },
-      mouseOver: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseover', () => callback())
-      },
-      mouseOut: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseout', () => callback())
-      },
-      mouseMove: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseover', () => {})
-            .on('mouseout', () => {})
-            .on('mousemove', (d, i, nodes) => {
-
-               // Get coordinates of mouse
-               const mouseCoordinates = d3.mouse(nodes[i]);
-               const mouseX = mouseCoordinates[0];
-               const mouseY = mouseCoordinates[1];
-
-               // Get all values on x axis
-               const xValues = chart.config.bottomXAxis.scale.domain();
-               const xLeftPoints = xValues.map(d => chart.config.bottomXAxis.scale(d));
-               const distancesToMouseX = xValues.map((d, i) => Math.abs(xLeftPoints[i] - mouseX));
-
-               // Calculate closest column
-               let closestColumnIndex = 0;
-               let closestDistance = distancesToMouseX[0];
-               distancesToMouseX.forEach((d, i) => {
-                  if (d < closestDistance) {
-                     closestColumnIndex = i;
-                     closestDistance = d;
-                  }
-               })
-
-               const closestGroup = xValues[closestColumnIndex];
-               const closestValues = Object.values(chart.config.datasets).map(d => {
-                  const groupValues = d.values.filter(d => d.x === closestGroup) || [];
-                  const firstMatch = groupValues[0] || {};
-                  return firstMatch.y;
-               })
-
-               // Send information about hover in callback
-               callback({
-                  name: closestGroup,
-                  left: xLeftPoints[closestColumnIndex] + chart.config.g.margin.left,
-                  top: mouseY + chart.config.g.margin.top,
-                  y: closestValues,
-               })
-            })
-      },
-      delete: () => {
-         chart.config.svg.el.remove();
       }
-   };
-
-   chart.init();
-   chart.update(chartConfig);
-   return chart;
-};
+      chart.update(update);
+      return chart;
+   },
 
 
-/** 
- * @name area
- * Scale: scalePoint
- * Axes: left, bottom
- **/
+   /** 
+    * @name area
+    * Scale: scalePoint
+    * Axes: left, bottom
+    **/
 
-charts.area = (chartConfig) => {
-
-   // Chart object with relevant methods
-   const chart = {
-      config: {
-         container: {id: chartConfig.containerId, el: '', dimensions: {}},
-         axis: {el: ''},
-         overlay: {el: ''},
-         svg: {dimensions: {}, el: ''},
-         g: {dimensions: {}, el: '', clip: '', margin: {top: 32, right: 32, bottom: 32, left: 50}},
-         datasets: {},
-         bottomXAxis: {el: '', padding: 0.1},
-         leftYAxis: {el: '', min: 'auto', max: 'auto', format: {number: ',.0f', prefix: '', suffix: ''}}
-      },
-      init: () => {
-
-         // Get a reference to the container and store dimensions
-         chart.config.container.el = d3.select(chart.config.container.id);
-         chart.config.container.dimensions = chart.config.container.el.node().getBoundingClientRect();
-
-         // Create svg element
-         chart.config.svg.el = chart.config.container.el.append('svg')
-            .attr('class', 'chart-svg')
-            .attr('width', chart.config.container.dimensions.width)
-            .attr('height', chart.config.container.dimensions.height);
-
-         // Create dimensions for main group
-         chart.config.g.dimensions.width = +chart.config.container.dimensions.width - chart.config.g.margin.left - chart.config.g.margin.right;
-         chart.config.g.dimensions.height = +chart.config.container.dimensions.height - chart.config.g.margin.top - chart.config.g.margin.bottom;
-
-         // Create a group for axis elements
-         chart.config.axis.el = chart.config.svg.el.append('g')
-            .attr('class', 'axis-group')
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-
-         // Create main group
-         chart.config.g.el = chart.config.svg.el.append('g')
-            .attr('class', 'chart-group')
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-
-         // Create x axis
-         chart.config.bottomXAxis.el = chart.config.axis.el.append('g')
-            .attr('class', 'bottom-x-axis')
-            .attr('transform', 'translate(0,' + chart.config.g.dimensions.height + ')');
-
-         // Create y axis
-         chart.config.leftYAxis.el = chart.config.axis.el.append('g')
-            .attr('class', 'left-y-axis');
-
-         // Create hover overlay
-         chart.config.overlay.el = chart.config.svg.el.append('rect')
-            .attr('class', 'overlay')
-            .style('opacity', 0)
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-            .attr('width', chart.config.g.dimensions.width)
-            .attr('height', chart.config.g.dimensions.height)	
-
-      },
-      update: (updates) => {
-
+   area: (elementId, update) => {
+      const chart = utils.baseChart(elementId);
+      chart.update = (updates) => {
          // Define all possible updates
          if (updates !== undefined) {
 
@@ -1335,90 +1039,90 @@ charts.area = (chartConfig) => {
             }
 
             // Dimension
-            chart.config.g.margin.top = updateConfigValue('margin.top', chart.config.g.margin.top);
-            chart.config.g.margin.right = updateConfigValue('margin.right', chart.config.g.margin.right);
-            chart.config.g.margin.bottom = updateConfigValue('margin.bottom', chart.config.g.margin.bottom);
-            chart.config.g.margin.left = updateConfigValue('margin.left', chart.config.g.margin.left);
+            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
+            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
+            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
+            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
 
             // Update datasets
             Object.keys(updates.datasets).forEach(key => {
                if (updates.datasets[key] === null) {
-                  delete chart.config.datasets[key];
-               } else if (!chart.config.datasets.hasOwnProperty(key)) {
-                  chart.config.datasets[key] = updates.datasets[key];
+                  delete chart.datasets[key];
+               } else if (!chart.datasets.hasOwnProperty(key)) {
+                  chart.datasets[key] = updates.datasets[key];
                } else {
-                  chart.config.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.config.datasets[key].values);
-                  chart.config.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.config.datasets[key].color);
-                  chart.config.datasets[key].radius = updateConfigValue(`datasets.${key}.radius`, chart.config.datasets[key].radius);
+                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
+                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
+                  chart.datasets[key].radius = updateConfigValue(`datasets.${key}.radius`, chart.datasets[key].radius);
                }
             })
 
             // LeftYAxis
-            chart.config.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.config.leftYAxis.min);
-            chart.config.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.config.leftYAxis.max);
-            chart.config.leftYAxis.format.number = updateConfigValue('leftYAxis.format.number', chart.config.leftYAxis.format.number);
-            chart.config.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.config.leftYAxis.format.prefix);
-            chart.config.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.config.leftYAxis.format.suffix);
+            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
+            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
+            chart.leftYAxis.format.number = updateConfigValue('leftYAxis.format.number', chart.leftYAxis.format.number);
+            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
+            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
 
             // BottomXAxis
-            chart.config.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.config.bottomXAxis.padding);
+            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
+            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
+            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
+            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
+            chart.bottomXAxis.format.isDate = updateConfigValue('bottomXAxis.format.isDate', chart.bottomXAxis.format.isDate);
          }
 
          // Update dataset and dimensions
-         chart.config.container.dimensions = chart.config.container.el.node().getBoundingClientRect();
+         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
 
          // Update svg dimensions
-         chart.config.svg.el.attr('width', chart.config.container.dimensions.width).attr('height', chart.config.container.dimensions.height);
-         chart.config.axis.el.attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')');
+         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
+         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
 
          // Update dimensions and margins og main group
-         chart.config.g.dimensions.width = +chart.config.container.dimensions.width - chart.config.g.margin.left - chart.config.g.margin.right;
-         chart.config.g.dimensions.height = +chart.config.container.dimensions.height - chart.config.g.margin.top - chart.config.g.margin.bottom;
-         chart.config.g.el.attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-         
+         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
+         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
+         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
+
          // Update overlay dimensions
-         chart.config.overlay.el
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-            .attr('width', chart.config.g.dimensions.width)
-            .attr('height', chart.config.g.dimensions.height)
+         chart.overlay.el
+            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
+            .attr('width', chart.g.dimensions.width)
+            .attr('height', chart.g.dimensions.height)
 
          // Set min and max values for left axis
-         let leftYMin = chart.config.leftYAxis.min === 'auto'
-            ? d3.min(Object.values(chart.config.datasets).map(d => d3.min(d.values, v => v.y)))
-            : chart.config.leftYAxis.min
+         let leftYMin = chart.leftYAxis.min === 'auto'
+            ? d3.min(Object.values(chart.datasets).map(d => d3.min(d.values, v => v.y)))
+            : chart.leftYAxis.min
          leftYMin = d3.min([0, leftYMin]);
-         
-         let leftYMax = chart.config.leftYAxis.max === 'auto'
-            ? d3.max(Object.values(chart.config.datasets).map(d => d3.max(d.values, v => v.y)))
-            : chart.config.leftYAxis.max 
+
+         let leftYMax = chart.leftYAxis.max === 'auto'
+            ? d3.max(Object.values(chart.datasets).map(d => d3.max(d.values, v => v.y)))
+            : chart.leftYAxis.max 
          leftYMax = d3.max([0, leftYMax]);
 
          // Update left axis
          const leftYDomain = [leftYMin, leftYMax];
          const leftYScale = d3
             .scaleLinear() // Type of scale used for axis
-            .rangeRound([chart.config.g.dimensions.height, 0]) // The range of the axis
+            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
             .domain(leftYDomain) // All values on axis;
-         chart.config.leftYAxis.scale = leftYScale;
+         chart.leftYAxis.scale = leftYScale;
 
          // Draw axis with .call d3 function
-         const gridlineLength = -chart.config.g.dimensions.width;
+         const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3
             .axisLeft(leftYScale)
             .tickSize(gridlineLength)
-            .tickFormat(d => {
-               const formatter = chart.config.leftYAxis.format || {};
-               const formattedValue = `${formatter.prefix} ${d3.format(formatter.number)(d)} ${formatter.suffix}`
-               return formattedValue;
-            })
-         chart.config.leftYAxis.el.call(leftYAxis);
+            .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
+         chart.leftYAxis.el.call(leftYAxis);
 
          // Update bottom axis
          let bottomXDomain = []
-         Object.values(chart.config.datasets).forEach(d => d.values.forEach(v => {
+         Object.values(chart.datasets).forEach(d => d.values.forEach(v => {
             if (bottomXDomain.indexOf(v.x) === -1){bottomXDomain.push(v.x)}
          }));
-         
+
          bottomXDomain = bottomXDomain.sort((a,b) => {
             if (a < b) { return -1; }
             if (a > b) { return 1; }
@@ -1427,11 +1131,13 @@ charts.area = (chartConfig) => {
 
          const bottomXScale = d3
             .scalePoint() // Type of scale used for axis
-            .rangeRound([0, chart.config.g.dimensions.width]) // The range of the axis
+            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
-         const bottomXAxis = d3.axisBottom(bottomXScale);
-         chart.config.bottomXAxis.scale = bottomXScale;
-         chart.config.bottomXAxis.el.call(bottomXAxis);
+         const bottomXAxis = d3
+            .axisBottom(bottomXScale)
+            .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
+         chart.bottomXAxis.scale = bottomXScale;
+         chart.bottomXAxis.el.call(bottomXAxis);
 
          const createLine = (dataset) => {
             const line = d3.line()
@@ -1452,8 +1158,8 @@ charts.area = (chartConfig) => {
             return area(dataset.values);
          }
 
-         const seriesData = Object.keys(chart.config.datasets).map(d => {
-            const dataset = chart.config.datasets[d];
+         const seriesData = Object.keys(chart.datasets).map(d => {
+            const dataset = chart.datasets[d];
             dataset.name = d;
             dataset.values = bottomXDomain.map(xValue => {
                const xMatches = dataset.values.filter(d => d.x === xValue); 
@@ -1466,7 +1172,7 @@ charts.area = (chartConfig) => {
 
          //console.log(seriesData);
 
-         const series = chart.config.g.el.selectAll(".series-group").data(seriesData, (d) => d.name);
+         const series = chart.g.el.selectAll(".series-group").data(seriesData, (d) => d.name);
 
          const newSeries = series.enter().append("g")
             .attr("class", "series-group")
@@ -1506,7 +1212,7 @@ charts.area = (chartConfig) => {
             .attr("cx", d => bottomXScale(d.x))
             .attr("cy", d => leftYScale(d.y || 0))
             .attr("fill", d => d.y === undefined ? 'none' : d.color)
-         
+
          circles.exit().remove();
 
          const line = series.selectAll(".line").data(d => [d], d => d.name)
@@ -1524,139 +1230,23 @@ charts.area = (chartConfig) => {
             .attr("d", d => createArea(d))   
 
          series.exit().remove();
-
-      },
-      mouseOver: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseover', () => callback())
-      },
-      mouseOut: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseout', () => callback())
-      },
-      mouseMove: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseover', () => {})
-            .on('mouseout', () => {})
-            .on('mousemove', (d, i, nodes) => {
-
-               // Get coordinates of mouse
-               const mouseCoordinates = d3.mouse(nodes[i]);
-               const mouseX = mouseCoordinates[0];
-               const mouseY = mouseCoordinates[1];
-
-               // Get all values on x axis
-               const xValues = chart.config.bottomXAxis.scale.domain();
-               const xLeftPoints = xValues.map(d => chart.config.bottomXAxis.scale(d));
-               const distancesToMouseX = xValues.map((d, i) => Math.abs(xLeftPoints[i] - mouseX));
-
-               // Calculate closest column
-               let closestColumnIndex = 0;
-               let closestDistance = distancesToMouseX[0];
-               distancesToMouseX.forEach((d, i) => {
-                  if (d < closestDistance) {
-                     closestColumnIndex = i;
-                     closestDistance = d;
-                  }
-               })
-
-               const closestGroup = xValues[closestColumnIndex];
-               const closestValues = Object.values(chart.config.datasets).map(d => {
-                  const groupValues = d.values.filter(d => d.x === closestGroup) || [];
-                  const firstMatch = groupValues[0] || {};
-                  return firstMatch.y;
-               })
-
-               // Send information about hover in callback
-               callback({
-                  name: closestGroup,
-                  left: xLeftPoints[closestColumnIndex] + chart.config.g.margin.left,
-                  top: mouseY + chart.config.g.margin.top,
-                  y: closestValues,
-               })
-            })
-      },
-      delete: () => {
-         chart.config.svg.el.remove();
       }
-   };
-
-   chart.init();
-   chart.update(chartConfig);
-   return chart;
-};
+      chart.update(update);
+      return chart;
+   },
 
 
-/** 
- * @name stackedArea
- * Scale: scalePoint
- * Axes: left, bottom
- **/
+   /** 
+    * @name stackedArea
+    * Scale: scalePoint
+    * Axes: left, bottom
+    **/
 
-charts.stackedArea = (chartConfig) => {
-
-   // Chart object with relevant methods
-   const chart = {
-      config: {
-         container: {id: chartConfig.containerId, el: '', dimensions: {}},
-         axis: {el: ''},
-         overlay: {el: ''},
-         svg: {dimensions: {}, el: ''},
-         g: {dimensions: {}, el: '', clip: '', margin: {top: 32, right: 32, bottom: 32, left: 50}},
-         datasets: {},
-         isSmooth: false,
-         isPercent: false,
-         bottomXAxis: {el: '', padding: 0.1},
-         leftYAxis: {el: '', min: 'auto', max: 'auto', format: {number: ',.0f', prefix: '', suffix: ''}}
-      },
-      init: () => {
-
-         // Get a reference to the container and store dimensions
-         chart.config.container.el = d3.select(chart.config.container.id);
-         chart.config.container.dimensions = chart.config.container.el.node().getBoundingClientRect();
-
-         // Create svg element
-         chart.config.svg.el = chart.config.container.el.append('svg')
-            .attr('class', 'chart-svg')
-            .attr('width', chart.config.container.dimensions.width)
-            .attr('height', chart.config.container.dimensions.height);
-
-         // Create dimensions for main group
-         chart.config.g.dimensions.width = +chart.config.container.dimensions.width - chart.config.g.margin.left - chart.config.g.margin.right;
-         chart.config.g.dimensions.height = +chart.config.container.dimensions.height - chart.config.g.margin.top - chart.config.g.margin.bottom;
-
-         // Create a group for axis elements
-         chart.config.axis.el = chart.config.svg.el.append('g')
-            .attr('class', 'axis-group')
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-
-         // Create main group
-         chart.config.g.el = chart.config.svg.el.append('g')
-            .attr('class', 'chart-group')
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-
-         // Create x axis
-         chart.config.bottomXAxis.el = chart.config.axis.el.append('g')
-            .attr('class', 'bottom-x-axis')
-            .attr('transform', 'translate(0,' + chart.config.g.dimensions.height + ')');
-
-         // Create y axis
-         chart.config.leftYAxis.el = chart.config.axis.el.append('g')
-            .attr('class', 'left-y-axis');
-
-         // Create hover overlay
-         chart.config.overlay.el = chart.config.svg.el.append('rect')
-            .attr('class', 'overlay')
-            .style('opacity', 0)
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-            .attr('width', chart.config.g.dimensions.width)
-            .attr('height', chart.config.g.dimensions.height)	
-
-      },
-      update: (updates) => {
-
+   stackedArea: (elementId, update) => {
+      const chart = utils.baseChart(elementId);
+      chart.update = (updates) => {
+         
          // Define all possible updates
-
          if (updates !== undefined) {
 
             const updateConfigValue = (path, defaultValue) => {
@@ -1665,63 +1255,67 @@ charts.stackedArea = (chartConfig) => {
             }
 
             // Dimension
-            chart.config.g.margin.top = updateConfigValue('margin.top', chart.config.g.margin.top);
-            chart.config.g.margin.right = updateConfigValue('margin.right', chart.config.g.margin.right);
-            chart.config.g.margin.bottom = updateConfigValue('margin.bottom', chart.config.g.margin.bottom);
-            chart.config.g.margin.left = updateConfigValue('margin.left', chart.config.g.margin.left);
+            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
+            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
+            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
+            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
 
             // Update datasets
             Object.keys(updates.datasets || {}).forEach(key => {
                if (updates.datasets[key] === null) {
-                  delete chart.config.datasets[key];
-               } else if (!chart.config.datasets.hasOwnProperty(key)) {
-                  chart.config.datasets[key] = updates.datasets[key];
+                  delete chart.datasets[key];
+               } else if (!chart.datasets.hasOwnProperty(key)) {
+                  chart.datasets[key] = updates.datasets[key];
                } else {
-                  chart.config.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.config.datasets[key].values);
-                  chart.config.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.config.datasets[key].color);
-                  chart.config.datasets[key].radius = updateConfigValue(`datasets.${key}.radius`, chart.config.datasets[key].radius);
+                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
+                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
+                  chart.datasets[key].radius = updateConfigValue(`datasets.${key}.radius`, chart.datasets[key].radius);
                }
             })
 
             // Update percent setting
-            chart.config.isSmooth = updateConfigValue('isSmooth', chart.config.isSmooth);
-            chart.config.isPercent = updateConfigValue('isPercent', chart.config.isPercent);
+            chart.isSmooth = updateConfigValue('isSmooth', chart.isSmooth);
+            chart.isPercent = updateConfigValue('isPercent', chart.isPercent);
 
             // LeftYAxis
-            chart.config.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.config.leftYAxis.min);
-            chart.config.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.config.leftYAxis.max);
-            chart.config.leftYAxis.format.number = updateConfigValue('leftYAxis.format.number', chart.config.leftYAxis.format.number);
-            chart.config.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.config.leftYAxis.format.prefix);
-            chart.config.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.config.leftYAxis.format.suffix);
+            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
+            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
+            chart.leftYAxis.format.number = updateConfigValue('leftYAxis.format.number', chart.leftYAxis.format.number);
+            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
+            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
 
             // BottomXAxis
-            chart.config.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.config.bottomXAxis.padding);
+            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
+            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
+            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
+            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
+            chart.bottomXAxis.format.isDate = updateConfigValue('bottomXAxis.format.isDate', chart.bottomXAxis.format.isDate);
          }
 
          // Update dataset and dimensions
-         chart.config.container.dimensions = chart.config.container.el.node().getBoundingClientRect();
+         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
 
          // Update svg dimensions
-         chart.config.svg.el.attr('width', chart.config.container.dimensions.width).attr('height', chart.config.container.dimensions.height);
-         chart.config.axis.el.attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')');
+         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
+         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
 
          // Update dimensions and margins og main group
-         chart.config.g.dimensions.width = +chart.config.container.dimensions.width - chart.config.g.margin.left - chart.config.g.margin.right;
-         chart.config.g.dimensions.height = +chart.config.container.dimensions.height - chart.config.g.margin.top - chart.config.g.margin.bottom;
-         chart.config.g.el.attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-         
+         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
+         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
+         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
+
          // Update overlay dimensions
-         chart.config.overlay.el
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-            .attr('width', chart.config.g.dimensions.width)
-            .attr('height', chart.config.g.dimensions.height)
+         chart.overlay.el
+            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
+            .attr('width', chart.g.dimensions.width)
+            .attr('height', chart.g.dimensions.height)
 
          // Update bottom axis
          let bottomXDomain = []
-         Object.values(chart.config.datasets).forEach(d => d.values.forEach(v => {
+         Object.values(chart.datasets).forEach(d => d.values.forEach(v => {
             if (bottomXDomain.indexOf(v.x) === -1){bottomXDomain.push(v.x)}
          }));
-         
+
          bottomXDomain = bottomXDomain.sort((a,b) => {
             if (a < b) { return -1; }
             if (a > b) { return 1; }
@@ -1730,17 +1324,19 @@ charts.stackedArea = (chartConfig) => {
 
          const bottomXScale = d3
             .scalePoint() // Type of scale used for axis
-            .rangeRound([0, chart.config.g.dimensions.width]) // The range of the axis
+            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
-         const bottomXAxis = d3.axisBottom(bottomXScale);
-         chart.config.bottomXAxis.scale = bottomXScale;
-         chart.config.bottomXAxis.el.call(bottomXAxis);
+         const bottomXAxis = d3
+            .axisBottom(bottomXScale)
+            .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
+         chart.bottomXAxis.scale = bottomXScale;
+         chart.bottomXAxis.el.call(bottomXAxis);
 
-         const seriesKeys = Object.keys(chart.config.datasets);
+         const seriesKeys = Object.keys(chart.datasets);
          const seriesData = seriesKeys.map((key, index) => {
-            const dataset = chart.config.datasets[key];       
+            const dataset = chart.datasets[key];       
             const previousKey = seriesKeys[index - 1];
-            const previousDataset = chart.config.datasets[previousKey] || {};
+            const previousDataset = chart.datasets[previousKey] || {};
             const previousValues = previousDataset.values || [];
             dataset.name = key;
             dataset.values = bottomXDomain.map(xValue => {
@@ -1776,17 +1372,17 @@ charts.stackedArea = (chartConfig) => {
 
          // Set min and max values for left axis
          let leftYMin = 0;
-         let leftYMax = chart.config.leftYAxis.max === 'auto'
+         let leftYMax = chart.leftYAxis.max === 'auto'
             ? d3.max(totalValues, d => d.y1)
-            : chart.config.leftYAxis.max 
+            : chart.leftYAxis.max 
          leftYMax = d3.max([0, leftYMax]);
-         let leftYFormat = chart.config.leftYAxis.format;
+         let leftYFormat = chart.leftYAxis.format;
 
          // Update settings if chart is percent
-         if (chart.config.isPercent) {
+         if (chart.isPercent) {
             leftYMax = 1;
             leftYFormat = {
-               number: ',.0%'
+               string: ',.0%'
             }
          }
 
@@ -1794,42 +1390,38 @@ charts.stackedArea = (chartConfig) => {
          const leftYDomain = [leftYMin, leftYMax];
          const leftYScale = d3
             .scaleLinear() // Type of scale used for axis
-            .rangeRound([chart.config.g.dimensions.height, 0]) // The range of the axis
+            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
             .domain(leftYDomain) // All values on axis;
-         chart.config.leftYAxis.scale = leftYScale;
+         chart.leftYAxis.scale = leftYScale;
 
          // Draw axis with .call d3 function
-         const gridlineLength = -chart.config.g.dimensions.width;
+         const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3
             .axisLeft(leftYScale)
             .tickSize(gridlineLength)
-            .tickFormat(d => {
-               const formatter = leftYFormat || {};
-               const formattedValue = `${formatter.prefix || ''} ${d3.format(formatter.number)(d)} ${formatter.suffix || ''}`
-               return formattedValue;
-            })
-         chart.config.leftYAxis.el.call(leftYAxis);
+            .tickFormat(d => utils.formatValue(d, leftYFormat))
+         chart.leftYAxis.el.call(leftYAxis);
 
          const createLine = (dataset) => {
             const line = d3.line()
                .x(d => bottomXScale(d.x))
-               .y(d => leftYScale(chart.config.isPercent ? d.y1Percent : d.y1))
+               .y(d => leftYScale(chart.isPercent ? d.y1Percent : d.y1))
                .defined(d => { return d.y !== undefined})
-               .curve(chart.config.isSmooth === true ? d3.curveCatmullRom : d3.curveLinear)
+               .curve(chart.isSmooth === true ? d3.curveCatmullRom : d3.curveLinear)
             return line(dataset.values);
          }
 
          const createArea = (dataset) => {
             const area = d3.area()
                .x(d => bottomXScale(d.x))
-               .y0(d => leftYScale(chart.config.isPercent ? d.y0Percent : d.y0))
-               .y1(d => leftYScale(chart.config.isPercent ? d.y1Percent : d.y1))
+               .y0(d => leftYScale(chart.isPercent ? d.y0Percent : d.y0))
+               .y1(d => leftYScale(chart.isPercent ? d.y1Percent : d.y1))
                .defined(d => { return d.y !== undefined})
-               .curve(chart.config.isSmooth === true ? d3.curveCatmullRom : d3.curveLinear)
+               .curve(chart.isSmooth === true ? d3.curveCatmullRom : d3.curveLinear)
                return area(dataset.values);
          }
 
-         const series = chart.config.g.el.selectAll(".series-group").data(seriesData, (d) => d.name);
+         const series = chart.g.el.selectAll(".series-group").data(seriesData, (d) => d.name);
 
          const newSeries = series.enter().append("g")
             .attr("class", "series-group")
@@ -1867,140 +1459,21 @@ charts.stackedArea = (chartConfig) => {
 
          series.exit().remove();
 
-      },
-      mouseOver: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseover', () => callback())
-      },
-      mouseOut: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseout', () => callback())
-      },
-      mouseMove: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseover', () => {})
-            .on('mouseout', () => {})
-            .on('mousemove', (d, i, nodes) => {
-
-               // Get coordinates of mouse
-               const mouseCoordinates = d3.mouse(nodes[i]);
-               const mouseX = mouseCoordinates[0];
-               const mouseY = mouseCoordinates[1];
-
-               // Get all values on x axis
-               const xValues = chart.config.bottomXAxis.scale.domain();
-               const xLeftPoints = xValues.map(d => chart.config.bottomXAxis.scale(d));
-               const distancesToMouseX = xValues.map((d, i) => Math.abs(xLeftPoints[i] - mouseX));
-
-               // Calculate closest column
-               let closestColumnIndex = 0;
-               let closestDistance = distancesToMouseX[0];
-               distancesToMouseX.forEach((d, i) => {
-                  if (d < closestDistance) {
-                     closestColumnIndex = i;
-                     closestDistance = d;
-                  }
-               })
-
-               const closestGroup = xValues[closestColumnIndex];
-               const closestValues = Object.values(chart.config.datasets).map(d => {
-                  const groupValues = d.values.filter(d => d.x === closestGroup) || [];
-                  const firstMatch = groupValues[0] || {};
-                  return firstMatch.y;
-               })
-
-               // Send information about hover in callback
-               callback({
-                  name: closestGroup,
-                  left: xLeftPoints[closestColumnIndex] + chart.config.g.margin.left,
-                  top: mouseY + chart.config.g.margin.top,
-                  y: closestValues,
-               })
-            })
-      },
-      delete: () => {
-         chart.config.svg.el.remove();
       }
-   };
-
-   chart.init();
-   chart.update(chartConfig);
-   return chart;
-};
+      chart.update(update);
+      return chart;
+   },
 
 
-/** 
- * @name lineColumn
- * Scale: scaleBand
- * Axes: left, bottom
- **/
+   /** 
+    * @name lineColumn
+    * Scale: scaleBand
+    * Axes: left, bottom
+    **/
 
-charts.lineColumn = (chartConfig) => {
-
-   // Chart object with relevant methods
-   const chart = {
-      config: {
-         container: {id: chartConfig.containerId, el: '', dimensions: {}},
-         axis: {el: ''},
-         overlay: {el: ''},
-         svg: {dimensions: {}, el: ''},
-         g: {dimensions: {}, el: '', clip: '', margin: {top: 32, right: 50, bottom: 32, left: 50}},
-         datasets: {},
-         bottomXAxis: {el: '', padding: 0.1},
-         leftYAxis: {el: '', min: 'auto', max: 'auto', format: {number: ',.0f', prefix: '', suffix: ''}},
-         rightYAxis: {el: '', min: 'auto', max: 'auto', format: {number: ',.0f', prefix: '', suffix: ''}}
-      },
-      init: () => {
-
-         // Get a reference to the container and store dimensions
-         chart.config.container.el = d3.select(chart.config.container.id);
-         chart.config.container.dimensions = chart.config.container.el.node().getBoundingClientRect();
-
-         // Create svg element
-         chart.config.svg.el = chart.config.container.el.append('svg')
-            .attr('class', 'chart-svg')
-            .attr('width', chart.config.container.dimensions.width)
-            .attr('height', chart.config.container.dimensions.height);
-
-         // Create dimensions for main group
-         chart.config.g.dimensions.width = +chart.config.container.dimensions.width - chart.config.g.margin.left - chart.config.g.margin.right;
-         chart.config.g.dimensions.height = +chart.config.container.dimensions.height - chart.config.g.margin.top - chart.config.g.margin.bottom;
-
-         // Create a group for axis elements
-         chart.config.axis.el = chart.config.svg.el.append('g')
-            .attr('class', 'axis-group')
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-
-         // Create main group
-         chart.config.g.el = chart.config.svg.el.append('g')
-            .attr('class', 'chart-group')
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-
-         // Create x axis
-         chart.config.bottomXAxis.el = chart.config.axis.el.append('g')
-            .attr('class', 'bottom-x-axis')
-            .attr('transform', 'translate(0,' + chart.config.g.dimensions.height + ')');
-
-         // Create y axis
-         chart.config.leftYAxis.el = chart.config.axis.el.append('g')
-            .attr('class', 'left-y-axis');
-
-         // Create y axis
-         chart.config.rightYAxis.el = chart.config.axis.el.append('g')
-            .attr('class', 'right-y-axis')
-            .attr('transform', 'translate(' + chart.config.g.dimensions.width + ',0)');
-
-         // Create hover overlay
-         chart.config.overlay.el = chart.config.svg.el.append('rect')
-            .attr('class', 'overlay')
-            .style('opacity', 0)
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-            .attr('width', chart.config.g.dimensions.width)
-            .attr('height', chart.config.g.dimensions.height)	
-
-      },
-      update: (updates) => {
-
+   lineColumn: (elementId, update) => {
+      const chart = utils.baseChart(elementId);
+      chart.update = (updates) => {
          // Define all possible updates
          if (updates !== undefined) {
 
@@ -2010,63 +1483,67 @@ charts.lineColumn = (chartConfig) => {
             }
 
             // Dimension
-            chart.config.g.margin.top = updateConfigValue('margin.top', chart.config.g.margin.top);
-            chart.config.g.margin.right = updateConfigValue('margin.right', chart.config.g.margin.right);
-            chart.config.g.margin.bottom = updateConfigValue('margin.bottom', chart.config.g.margin.bottom);
-            chart.config.g.margin.left = updateConfigValue('margin.left', chart.config.g.margin.left);
+            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
+            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
+            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
+            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
 
             // Update datasets
             Object.keys(updates.datasets).forEach(key => {
                if (updates.datasets[key] === null) {
-                  delete chart.config.datasets[key];
-               } else if (!chart.config.datasets.hasOwnProperty(key)) {
-                  chart.config.datasets[key] = updates.datasets[key];
+                  delete chart.datasets[key];
+               } else if (!chart.datasets.hasOwnProperty(key)) {
+                  chart.datasets[key] = updates.datasets[key];
                } else {
-                  chart.config.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.config.datasets[key].values);
-                  chart.config.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.config.datasets[key].color);
-                  chart.config.datasets[key].radius = updateConfigValue(`datasets.${key}.radius`, chart.config.datasets[key].radius);
+                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
+                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
+                  chart.datasets[key].radius = updateConfigValue(`datasets.${key}.radius`, chart.datasets[key].radius);
                }
             })
 
             // LeftYAxis
-            chart.config.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.config.leftYAxis.min);
-            chart.config.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.config.leftYAxis.max);
-            chart.config.leftYAxis.format.number = updateConfigValue('leftYAxis.format.number', chart.config.leftYAxis.format.number);
-            chart.config.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.config.leftYAxis.format.prefix);
-            chart.config.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.config.leftYAxis.format.suffix);
+            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
+            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
+            chart.leftYAxis.format.string = updateConfigValue('leftYAxis.format.string', chart.leftYAxis.format.string);
+            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
+            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
 
             // rightYAxis
-            chart.config.rightYAxis.min = updateConfigValue('rightYAxis.min', chart.config.rightYAxis.min);
-            chart.config.rightYAxis.max = updateConfigValue('rightYAxis.max', chart.config.rightYAxis.max);
-            chart.config.rightYAxis.format.number = updateConfigValue('rightYAxis.format.number', chart.config.rightYAxis.format.number);
-            chart.config.rightYAxis.format.prefix = updateConfigValue('rightYAxis.format.prefix', chart.config.rightYAxis.format.prefix);
-            chart.config.rightYAxis.format.suffix = updateConfigValue('rightYAxis.format.suffix', chart.config.rightYAxis.format.suffix);
+            chart.rightYAxis.min = updateConfigValue('rightYAxis.min', chart.rightYAxis.min);
+            chart.rightYAxis.max = updateConfigValue('rightYAxis.max', chart.rightYAxis.max);
+            chart.rightYAxis.format.string = updateConfigValue('rightYAxis.format.string', chart.rightYAxis.format.string);
+            chart.rightYAxis.format.prefix = updateConfigValue('rightYAxis.format.prefix', chart.rightYAxis.format.prefix);
+            chart.rightYAxis.format.suffix = updateConfigValue('rightYAxis.format.suffix', chart.rightYAxis.format.suffix);
 
             // BottomXAxis
-            chart.config.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.config.bottomXAxis.padding);
+            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
+            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
+            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
+            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
+            chart.bottomXAxis.format.isDate = updateConfigValue('bottomXAxis.format.isDate', chart.bottomXAxis.format.isDate);
          }
 
          // Update dataset and dimensions
-         chart.config.container.dimensions = chart.config.container.el.node().getBoundingClientRect();
+         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
 
          // Update svg dimensions
-         chart.config.svg.el.attr('width', chart.config.container.dimensions.width).attr('height', chart.config.container.dimensions.height);
-         chart.config.axis.el.attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')');
+         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
+         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
 
          // Update dimensions and margins og main group
-         chart.config.g.dimensions.width = +chart.config.container.dimensions.width - chart.config.g.margin.left - chart.config.g.margin.right;
-         chart.config.g.dimensions.height = +chart.config.container.dimensions.height - chart.config.g.margin.top - chart.config.g.margin.bottom;
-         chart.config.g.el.attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-         
-         // Update overlay dimensions
-         chart.config.overlay.el
-            .attr('transform', 'translate(' + chart.config.g.margin.left + ',' + chart.config.g.margin.top + ')')
-            .attr('width', chart.config.g.dimensions.width)
-            .attr('height', chart.config.g.dimensions.height)
+         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
+         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
+         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
 
          // Update overlay dimensions
-         chart.config.rightYAxis.el
-            .attr('transform', 'translate(' + chart.config.g.dimensions.width + ',0)')
+         chart.overlay.el
+            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
+            .attr('width', chart.g.dimensions.width)
+            .attr('height', chart.g.dimensions.height)
+
+         // Update overlay dimensions
+         chart.rightYAxis.el
+            .attr('transform', 'translate(' + chart.g.dimensions.width + ',0)')
 
          // Line Data
          const allData = [];
@@ -2075,8 +1552,8 @@ charts.lineColumn = (chartConfig) => {
          const leftData = [];
          const rightData = [];
 
-         Object.keys(chart.config.datasets).forEach(key => {
-            const dataset = chart.config.datasets[key];
+         Object.keys(chart.datasets).forEach(key => {
+            const dataset = chart.datasets[key];
             dataset.name = key;
             allData.push(dataset);
             if (dataset.type === 'line') {lineData.push(dataset)};
@@ -2086,59 +1563,55 @@ charts.lineColumn = (chartConfig) => {
          })
 
          // Set min and max values for left axis
-         let leftYMin = chart.config.leftYAxis.min === 'auto'
+         let leftYMin = chart.leftYAxis.min === 'auto'
             ? d3.min(leftData.map(d => d3.min(d.values, v => v.y)))
-            : chart.config.leftYAxis.min
+            : chart.leftYAxis.min
          leftYMin = d3.min([0, leftYMin]);
-         
-         let leftYMax = chart.config.leftYAxis.max === 'auto'
+
+         let leftYMax = chart.leftYAxis.max === 'auto'
             ? d3.max(leftData.map(d => d3.max(d.values, v => v.y)))
-            : chart.config.leftYAxis.max 
+            : chart.leftYAxis.max 
          leftYMax = d3.max([0, leftYMax]);
 
          // Update left axis
          const leftYDomain = [leftYMin, leftYMax];
          const leftYScale = d3
             .scaleLinear() // Type of scale used for axis
-            .rangeRound([chart.config.g.dimensions.height, 0]) // The range of the axis
+            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
             .domain(leftYDomain) // All values on axis;
-         chart.config.leftYAxis.scale = leftYScale;
+         chart.leftYAxis.scale = leftYScale;
 
          // Draw axis with .call d3 function
-         const gridlineLength = -chart.config.g.dimensions.width;
+         const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3
             .axisLeft(leftYScale)
             .tickSize(gridlineLength)
-            .tickFormat(d => {
-               const formatter = chart.config.leftYAxis.format || {};
-               const formattedValue = `${formatter.prefix} ${d3.format(formatter.number)(d)} ${formatter.suffix}`
-               return formattedValue;
-            })
-         chart.config.leftYAxis.el.call(leftYAxis);
-         
+            .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
+         chart.leftYAxis.el.call(leftYAxis);
+
          // Set min and max values for left axis
-         let rightYMin = chart.config.rightYAxis.min === 'auto'
+         let rightYMin = chart.rightYAxis.min === 'auto'
             ? d3.min(rightData.map(d => d3.min(d.values, v => v.y)))
-            : chart.config.rightYAxis.min
+            : chart.rightYAxis.min
          rightYMin = d3.min([0, rightYMin]);
-         
-         let rightYMax = chart.config.rightYAxis.max === 'auto'
+
+         let rightYMax = chart.rightYAxis.max === 'auto'
             ? d3.max(rightData.map(d => d3.max(d.values, v => v.y)))
-            : chart.config.rightYAxis.max 
+            : chart.rightYAxis.max 
          rightYMax = d3.max([0, rightYMax]);
 
          // Update left axis
          const rightYDomain = [rightYMin, rightYMax];
          const rightYScale = d3
             .scaleLinear() // Type of scale used for axis
-            .rangeRound([chart.config.g.dimensions.height, 0]) // The range of the axis
+            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
             .domain(rightYDomain) // All values on axis;
-         chart.config.rightYAxis.scale = rightYScale;
+         chart.rightYAxis.scale = rightYScale;
 
          // Draw axis with .call d3 function
          let rightValues = rightYScale.ticks();
          const leftDataExists = leftData.length > 0;
-         
+
          if (leftDataExists) {
             const leftTicks = leftYScale.ticks();
             const rightDomain = rightYScale.domain();
@@ -2148,26 +1621,22 @@ charts.lineColumn = (chartConfig) => {
                return rightDomain[0] + (percent * rightRange);
             })
          }
-         
+
          // Calculate right ticks
          const rightTickSize = leftDataExists ? 0 : gridlineLength;
          const rightYAxis = d3
             .axisRight(rightYScale)
             .tickSize(rightTickSize)
             .tickValues(rightValues)
-            .tickFormat(d => {
-               const formatter = chart.config.rightYAxis.format || {};
-               const formattedValue = `${formatter.prefix} ${d3.format(formatter.number)(d)} ${formatter.suffix}`
-               return formattedValue;
-            })
-         chart.config.rightYAxis.el.call(rightYAxis);  
+            .tickFormat(d => utils.formatValue(d, chart.rightYAxis.format))
+         chart.rightYAxis.el.call(rightYAxis);  
 
          // Update bottom axis
          let bottomXDomain = []
          allData.forEach(d => d.values.forEach(v => {
             if (bottomXDomain.indexOf(v.x) === -1){bottomXDomain.push(v.x)}
          }));
-         
+
          bottomXDomain = bottomXDomain.sort((a,b) => {
             if (a < b) { return -1; }
             if (a > b) { return 1; }
@@ -2176,12 +1645,14 @@ charts.lineColumn = (chartConfig) => {
 
          const bottomXScale = d3
             .scaleBand() // Type of scale used for axis
-            .rangeRound([0, chart.config.g.dimensions.width]) // The range of the axis
+            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
             .padding(0.1)
-         const bottomXAxis = d3.axisBottom(bottomXScale);
-         chart.config.bottomXAxis.scale = bottomXScale;
-         chart.config.bottomXAxis.el.call(bottomXAxis);
+         const bottomXAxis = d3
+            .axisBottom(bottomXScale)
+            .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
+         chart.bottomXAxis.scale = bottomXScale;
+         chart.bottomXAxis.el.call(bottomXAxis);
 
          const createLine = (dataset) => {
             const line = d3.line()
@@ -2220,12 +1691,12 @@ charts.lineColumn = (chartConfig) => {
             }
          })
 
-         const columnGroup = chart.config.g.el.selectAll(".column-group").data(columnGroupData, (d) => d.x);
+         const columnGroup = chart.g.el.selectAll(".column-group").data(columnGroupData, (d) => d.x);
 
          columnGroup.enter()
-				.append("g")
-				.attr("class", "column-group")
-				.attr("transform", d => "translate(" + bottomXScale(d.x) + ", 0)")
+            .append("g")
+            .attr("class", "column-group")
+            .attr("transform", d => "translate(" + bottomXScale(d.x) + ", 0)")
             .attr("width", bottomXScale.bandwidth())
             .selectAll(".column").data(d => d.values, k => k.x)
                .enter().append("rect")
@@ -2291,7 +1762,7 @@ charts.lineColumn = (chartConfig) => {
             .attr('x', d => bottomXGroupScale(d.x))
 
          existingColumns.exit().remove();
-         
+
          // Series data for lines
          const seriesData = lineData.map(dataset => {
             dataset.values = bottomXDomain.map(xValue => {
@@ -2303,7 +1774,7 @@ charts.lineColumn = (chartConfig) => {
          })
 
          // Draw Series
-         const series = chart.config.g.el.selectAll(".series-group").data(seriesData, (d) => d.name);
+         const series = chart.g.el.selectAll(".series-group").data(seriesData, (d) => d.name);
 
          const newSeries = series.enter().append("g")
             .attr("class", "series-group")
@@ -2340,7 +1811,7 @@ charts.lineColumn = (chartConfig) => {
                return scale(d.y);
             })
             .attr("fill", d => d.y === undefined ? 'none' : d.color)
-         
+
          circles.exit().remove();
 
          const line = series.selectAll(".line").data(d => [d], d => d.name)
@@ -2350,137 +1821,214 @@ charts.lineColumn = (chartConfig) => {
             .attr("d", d => createLine(d))
 
          series.exit().remove();
+      };
+      chart.update(update);
+      return chart;
+   },
 
-      },
-      mouseOver: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseover', () => callback())
-      },
-      mouseOut: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseout', () => callback())
-      },
-      mouseMove: (callback) => {
-         chart.config.svg.el.selectAll('.overlay')
-            .on('mouseover', () => {})
-            .on('mouseout', () => {})
-            .on('mousemove', (d, i, nodes) => {
 
-               // Get coordinates of mouse
-               const mouseCoordinates = d3.mouse(nodes[i]);
-               const mouseX = mouseCoordinates[0];
-               const mouseY = mouseCoordinates[1];
+   /** 
+    * @name timeLine
+    * Scale: scaleTime
+    * Axes: left, bottom
+    **/
 
-               // Get all values on x axis
-               const xValues = chart.config.bottomXAxis.scale.domain();
-               const xLeftPoints = xValues.map(d => chart.config.bottomXAxis.scale(d) + (chart.config.bottomXAxis.scale.bandwidth() / 2));
-               const distancesToMouseX = xValues.map((d, i) => Math.abs(xLeftPoints[i] - mouseX));
+   timeLine: (elementId, update) => {
+      const chart = utils.baseChart(elementId, {
+         'bottomXAxis.format.string': '%d %b',
+         'bottomXAxis.format.isDate': true
+      });
+      chart.update = (updates) => {
+         // Define all possible updates
+         if (updates !== undefined) {
 
-               // Calculate closest column
-               let closestColumnIndex = 0;
-               let closestDistance = distancesToMouseX[0];
-               distancesToMouseX.forEach((d, i) => {
-                  if (d < closestDistance) {
-                     closestColumnIndex = i;
-                     closestDistance = d;
-                  }
-               })
+            const updateConfigValue = (path, defaultValue) => {
+               const updateValue = _get(updates, path);
+               return updateValue !== undefined ? updateValue : defaultValue
+            }
 
-               const closestGroup = xValues[closestColumnIndex];
-               const closestValues = Object.values(chart.config.datasets).map(d => {
-                  const groupValues = d.values.filter(d => d.x === closestGroup) || [];
-                  const firstMatch = groupValues[0] || {};
-                  return firstMatch.y;
-               })
+            // Dimension
+            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
+            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
+            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
+            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
 
-               // Send information about hover in callback
-               callback({
-                  name: closestGroup,
-                  left: xLeftPoints[closestColumnIndex] + chart.config.g.margin.left,
-                  top: mouseY + chart.config.g.margin.top,
-                  y: closestValues,
-               })
+            // Update datasets
+            Object.keys(updates.datasets || {}).forEach(key => {
+               if (updates.datasets[key] === null) {
+                  delete chart.datasets[key];
+               } else if (!chart.datasets.hasOwnProperty(key)) {
+                  chart.datasets[key] = updates.datasets[key];
+               } else {
+                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
+                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
+                  chart.datasets[key].radius = updateConfigValue(`datasets.${key}.radius`, chart.datasets[key].radius);
+               }
             })
-      },
-      delete: () => {
-         chart.config.svg.el.remove();
-      }
-   };
 
-   chart.init();
-   chart.update(chartConfig);
-   return chart;
-};
+            // LeftYAxis
+            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
+            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
+            chart.leftYAxis.format.number = updateConfigValue('leftYAxis.format.number', chart.leftYAxis.format.number);
+            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
+            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
 
+            // BottomXAxis
+            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
+            chart.bottomXAxis.min = updateConfigValue('bottomXAxis.min', chart.bottomXAxis.min);
+            chart.bottomXAxis.max = updateConfigValue('bottomXAxis.max', chart.bottomXAxis.max);
+            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
+            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
+            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
+            chart.bottomXAxis.format.isDate = updateConfigValue('bottomXAxis.format.isDate', chart.bottomXAxis.format.isDate);
 
+         }
 
+         // Update dataset and dimensions
+         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
 
+         // Update svg dimensions
+         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
+         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
 
+         // Update dimensions and margins og main group
+         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
+         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
+         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
 
+         // Update overlay dimensions
+         chart.overlay.el
+            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
+            .attr('width', chart.g.dimensions.width)
+            .attr('height', chart.g.dimensions.height)
 
+         // Set min and max values for left axis
+         let leftYMin = chart.leftYAxis.min === 'auto'
+            ? d3.min(Object.values(chart.datasets).map(d => d3.min(d.values, v => v.y)))
+            : chart.leftYAxis.min
+         leftYMin = d3.min([0, leftYMin]);
 
+         let leftYMax = chart.leftYAxis.max === 'auto'
+            ? d3.max(Object.values(chart.datasets).map(d => d3.max(d.values, v => v.y)))
+            : chart.leftYAxis.max 
+         leftYMax = d3.max([0, leftYMax]);
 
-/** 
- * @name heatMap
- * Scale: linear
- * Axes: left, top
- **/
+         // Update left axis
+         const leftYDomain = [leftYMin, leftYMax];
+         const leftYScale = d3
+            .scaleLinear() // Type of scale used for axis
+            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
+            .domain(leftYDomain) // All values on axis;
+         chart.leftYAxis.scale = leftYScale;
 
-charts.heatMap = (chartConfig) => {}
+         // Draw axis with .call d3 function
+         const gridlineLength = -chart.g.dimensions.width;
+         const leftYAxis = d3
+            .axisLeft(leftYScale)
+            .tickSize(gridlineLength)
+            .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
+         chart.leftYAxis.el.call(leftYAxis);
 
+         // Set min and max values for left axis
+         let bottomXMin = chart.bottomXAxis.min === 'auto'
+            ? d3.min(Object.values(chart.datasets).map(d => d3.min(d.values, v => v.x)))
+            : chart.bottomXAxis.min
 
-/** 
- * @name bar
- * Scale: scaleBand
- * Axes: left, bottom
- **/
+         let bottomXMax = chart.bottomXAxis.max === 'auto'
+            ? d3.max(Object.values(chart.datasets).map(d => d3.max(d.values, v => v.x)))
+            : chart.bottomXAxis.max 
 
-charts.bar = (chartConfig) => {}
+         // Update bottom axis
+         let bottomXDomain = [bottomXMin, bottomXMax]
+         const bottomXScale = d3
+            .scaleTime() // Type of scale used for axis
+            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
+            .domain(bottomXDomain) // The values on the axis
 
+         const bottomXAxis = d3
+            .axisBottom(bottomXScale)
+            .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
+         chart.bottomXAxis.scale = bottomXScale;
+         chart.bottomXAxis.el.call(bottomXAxis);
 
-/** 
- * @name stackedBar
- * Scale: scaleBand
- * Axes: left, bottom
- **/
+         const createLine = (dataset) => {
+            const line = d3.line()
+               .x(d => bottomXScale(d.x))
+               .y(d => leftYScale(d.y))
+               .defined(d => d.y !== undefined)
+               .curve(dataset.isSmooth === true ? d3.curveCatmullRom : d3.curveLinear)
+            return line(dataset.values);
+         }
 
-charts.stackedBar = (chartConfig) => {}
+         const xValues = [];
+         const seriesData = Object.keys(chart.datasets).map(d => {
+            const dataset = chart.datasets[d];
+            dataset.name = d;
+            dataset.values.forEach(d => {
+               if (xValues.indexOf(d.x) === -1) {xValues.push(d.x)};
+            })
+            return dataset;
+         })
+         
+         chart.bottomXAxis.definedValues = xValues;
 
+         const series = chart.g.el.selectAll(".series-group").data(seriesData, (d) => d.name);
 
-/** 
- * @name groupedBar
- * Scale: scaleBand
- * Axes: left, bottom
- **/
+         const newSeries = series.enter().append("g")
+            .attr("class", "series-group")
 
-charts.groupedBar = (chartConfig) => {}
+         newSeries.selectAll(".line").data(d => [d], d => d.name).enter()
+            .append("path")
+            .attr("class", "line")
+            .style("stroke-width", d => d.strokeWidth || 3)
+            .style("stroke", d => d.color)
+            .style("fill", 'none')
+            .attr("d", d => createLine(d))
 
+         newSeries.selectAll(".circle").data(d => d.values.map(c => {
+            return {x: c.x, y: c.y, color: d.color, radius: d.radius};
+         }), d => d.x).enter()
+            .append("circle")
+            .attr("class", "circle")
+            .attr("r", d => d.radius !== undefined ? d.radius : 5)
+            .attr("cx", d => bottomXScale(d.x))
+            .attr("cy", d => leftYScale(d.y))
+            .attr("fill", d => d.color)
 
-/** 
- * @name timeLine
- * Scale: scaleTime
- * Axes: left, bottom
- **/
+         const circles = series.selectAll(".circle").data(d => d.values.map(c => {
+            return {x: c.x, y: c.y, color: d.color, radius: d.radius};
+         }), d => d.x)
 
-charts.timeLine = (chartConfig) => {}
+         circles
+            .attr("r", d => d.radius !== undefined ? d.radius : 5)
+            .attr("cx", d => bottomXScale(d.x))
+            .attr("cy", d => leftYScale(d.y || 0))
+            .attr("fill", d => d.y === undefined ? 'none' : d.color)
 
+         circles.exit().remove();
 
-/** 
- * @name sparkLine
- * Scale: scalePoint
- * Axes: bottom
- **/
+         const line = series.selectAll(".line").data(d => [d], d => d.name)
 
-charts.sparkLine = (chartConfig) => {}
+         line
+            .style("stroke-width", d => d.strokeWidth || 3)
+            .style("stroke", d => d.color)
+            .attr("d", d => createLine(d))
 
+         series.exit().remove();
+      };
+      chart.update(update);
+      return chart;
+   },
 
-/** 
- * @name pieChart
- * Scale: none
- * Axes: none
- **/
+   // TODO
+   // heatMap: (chartConfig) => {},
+   // bar: (chartConfig) => {},
+   // stackedBar: (chartConfig) => {},
+   // groupedBar: (chartConfig) => {},
+   // sparkLine: (chartConfig) => {},
+   // pieChart: (chartConfig) => {}
 
-charts.pieChart = (chartConfig) => {}
+}
 
 // Export charts
 export default charts

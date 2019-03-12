@@ -58,8 +58,7 @@
       mounted() {
          const vm = this;
          
-         this.chart = new charts.area({
-            containerId: '#chart',
+         this.chart = new charts.area('#chart', {
             datasets: {
                'conversions': {
                   color: 'green',

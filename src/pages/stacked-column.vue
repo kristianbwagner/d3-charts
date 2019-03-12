@@ -57,8 +57,7 @@
       },
       mounted() {
          const vm = this;
-         this.chart = new charts.stackedColumn({
-            containerId: '#chart',
+         this.chart = new charts.stackedColumn('#chart', {
             datasets: {
                'mobile': {
                   color: 'green',
