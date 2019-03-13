@@ -44,6 +44,10 @@ const utils = {
          bottomXAxis: {
             el: '', 
             padding: 0.1,
+            margin: {
+               left: 0,
+               right: 0,
+            },
             min: 'auto',
             max: 'auto',
             format: {
@@ -130,10 +134,25 @@ const utils = {
          .attr('width', config.g.dimensions.width)
          .attr('height', config.g.dimensions.height)	
 
+      // Add clip to not allow overflow. Especially useful for time line so you can change the time period.
+      config.defs = config.svg.el.append("defs");
+      config.clipPath = config.defs.append("svg:clipPath")
+         .attr("id", `clip`)
+         
+      config.clipPath.rect = config.clipPath.append("rect")
+         .attr("class", "clip-rect")
+         .attr("width", config.g.dimensions.width)
+         .attr("height", config.g.dimensions.height + 20)
+         .attr("x", 0)
+         .attr("y", -6)
+
+      config.g.el.attr("clip-path", `url(#clip)`);   
 
       // Add default mouse over callback
       config.mouseOver = (callback) => {
-         config.svg.el.selectAll('.overlay').on('mouseover', () => callback())
+         config.overlay.el.on('mouseover', () => {
+            callback()
+         })
       }
       
       // Add default mouse out callback
@@ -198,6 +217,9 @@ const utils = {
 
       return config;
    },
+   baseUpdate() {
+      
+   }
 };
 
 const charts = {
@@ -314,7 +336,7 @@ const charts = {
 
          const bottomXScale = d3
             .scaleBand() // Type of scale used for axis
-            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
+            .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width-chart.bottomXAxis.margin.right]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
             .padding(chart.bottomXAxis.padding) // Padding between columns
          const bottomXAxis = d3
@@ -525,7 +547,7 @@ const charts = {
 
          const bottomXScale = d3
             .scaleBand() // Type of scale used for axis
-            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
+            .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width-chart.bottomXAxis.margin.right]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
             .padding(chart.bottomXAxis.padding) // Padding between columns
          const bottomXAxis = d3
@@ -709,7 +731,7 @@ const charts = {
 
          const bottomXScale = d3
             .scaleBand() // Type of scale used for axis
-            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
+            .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width-chart.bottomXAxis.margin.right]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
             .padding(chart.bottomXAxis.padding) // Padding between columns
          const bottomXAxis = d3
@@ -838,7 +860,10 @@ const charts = {
     **/
 
    line: (elementId, update) => {
-      const chart = utils.baseChart(elementId);
+      const chart = utils.baseChart(elementId, {
+         'bottomXAxis.margin.left': 20,
+         'bottomXAxis.margin.right': 20
+      });
       chart.update = (updates) => {
       
          // Define all possible updates
@@ -902,6 +927,10 @@ const charts = {
             .attr('width', chart.g.dimensions.width)
             .attr('height', chart.g.dimensions.height)
 
+         // Updatea clip path rect
+         chart.clipPath.rect
+            .attr("width", chart.g.dimensions.width)   
+
          // Set min and max values for left axis
          let leftYMin = chart.leftYAxis.min === 'auto'
             ? d3.min(Object.values(chart.datasets).map(d => d3.min(d.values, v => v.y)))
@@ -943,7 +972,7 @@ const charts = {
 
          const bottomXScale = d3
             .scalePoint() // Type of scale used for axis
-            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
+            .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width - chart.bottomXAxis.margin.right]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
          const bottomXAxis = d3
             .axisBottom(bottomXScale)
@@ -1131,7 +1160,7 @@ const charts = {
 
          const bottomXScale = d3
             .scalePoint() // Type of scale used for axis
-            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
+            .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width-chart.bottomXAxis.margin.right]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
          const bottomXAxis = d3
             .axisBottom(bottomXScale)
@@ -1324,7 +1353,7 @@ const charts = {
 
          const bottomXScale = d3
             .scalePoint() // Type of scale used for axis
-            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
+            .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width-chart.bottomXAxis.margin.right]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
          const bottomXAxis = d3
             .axisBottom(bottomXScale)
@@ -1645,7 +1674,7 @@ const charts = {
 
          const bottomXScale = d3
             .scaleBand() // Type of scale used for axis
-            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
+            .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width-chart.bottomXAxis.margin.right]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
             .padding(0.1)
          const bottomXAxis = d3
@@ -1836,7 +1865,9 @@ const charts = {
    timeLine: (elementId, update) => {
       const chart = utils.baseChart(elementId, {
          'bottomXAxis.format.string': '%d %b',
-         'bottomXAxis.format.isDate': true
+         'bottomXAxis.format.isDate': true,
+         'bottomXAxis.margin.left': 20,
+         'bottomXAxis.margin.right': 20
       });
       chart.update = (updates) => {
          // Define all possible updates
@@ -1902,6 +1933,10 @@ const charts = {
             .attr('width', chart.g.dimensions.width)
             .attr('height', chart.g.dimensions.height)
 
+         // Updatea clip path rect
+         chart.clipPath.rect
+            .attr("width", chart.g.dimensions.width)
+
          // Set min and max values for left axis
          let leftYMin = chart.leftYAxis.min === 'auto'
             ? d3.min(Object.values(chart.datasets).map(d => d3.min(d.values, v => v.y)))
@@ -1942,7 +1977,7 @@ const charts = {
          let bottomXDomain = [bottomXMin, bottomXMax]
          const bottomXScale = d3
             .scaleTime() // Type of scale used for axis
-            .rangeRound([0, chart.g.dimensions.width]) // The range of the axis
+            .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width-chart.bottomXAxis.margin.right]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
 
          const bottomXAxis = d3

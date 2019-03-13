@@ -83,7 +83,7 @@
                   radius: 5,
                   isSmooth: true,
                   values: [
-                     {x: new Date(2019,1,1), y: 20},
+                     {x: new Date(2019,1,1), y: 0},
                      {x: new Date(2019,1,3), y: 940},
                      {x: new Date(2019,1,4), y: 130},
                      {x: new Date(2019,1,6), y: 520},
