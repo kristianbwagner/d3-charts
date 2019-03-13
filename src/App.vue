@@ -15,7 +15,7 @@
   </div>
 </template>
 
-<style>
+<style lang="scss">
 
    body {
       margin: 0
@@ -29,8 +29,17 @@
    }
 
    .link {
-      margin: 0 4px;
+      padding: 0 4px;
       color: #FFF;
+      opacity: 1;
+
+      &:hover {
+         opacity: 0.7;
+      }
+      
+      &.router-link-active {
+         opacity: 0.7;
+      }
    }
 
 </style>

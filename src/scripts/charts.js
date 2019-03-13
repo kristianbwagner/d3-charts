@@ -12,7 +12,7 @@ const utils = {
          : d3.format(formatter.string)(value);
       return `${formatter.prefix || ''} ${formattedString} ${formatter.suffix || ''}`
    },
-   baseChart(elementId, customConfig) {
+   createBaseChart(elementId, customConfig) {
       const config = {
          container: {
             id: '',
@@ -217,8 +217,88 @@ const utils = {
 
       return config;
    },
-   baseUpdate() {
+   updateBaseDimensions(chart) {
+      // Update dataset and dimensions
+      chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
+
+      // Update svg dimensions
+      chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
+      chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
+
+      // Update dimensions and margins og main group
+      chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
+      chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
+      chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
+
+      // Update overlay dimensions
+      chart.overlay.el
+         .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
+         .attr('width', chart.g.dimensions.width)
+         .attr('height', chart.g.dimensions.height)
+
+      // Update right axis
+      chart.rightYAxis.el
+         .attr('transform', 'translate(' + chart.g.dimensions.width + ',0)')
+
+      // Updatea clip path rect
+      chart.clipPath.rect
+         .attr("width", chart.g.dimensions.width)
+   },
+   updateBaseConfig(chart, updates) {
       
+      if (updates !== undefined) {
+
+         // Helper to map udpates
+         function mapUpdate(updatePath, chartPath) {
+            const updateValue = _get(updates, updatePath);
+            if (updateValue !== undefined) {
+               _set(chart, chartPath, updateValue);   
+            }
+         }
+
+         // Update datasets
+         Object.keys(updates.datasets || {}).forEach(key => {
+            if (updates.datasets[key] === null) {
+               delete chart.datasets[key];
+            } else if (!chart.datasets.hasOwnProperty(key)) {
+               mapUpdate(`datasets.${key}`, `datasets.${key}`);
+            } else {
+               mapUpdate(`datasets.${key}.values`, `datasets.${key}.values`);
+               mapUpdate(`datasets.${key}.color`, `datasets.${key}.color`);
+               mapUpdate(`datasets.${key}.radius`, `datasets.${key}.radius`);
+               mapUpdate(`datasets.${key}.borderRadius`, `datasets.${key}.borderRadius`);
+               mapUpdate(`datasets.${key}.lineWidth`, `datasets.${key}.lineWidth`);
+            }
+         })
+
+         // Map other updates
+         mapUpdate('margin.top', 'g.margin.top');
+         mapUpdate('margin.right', 'g.margin.right');
+         mapUpdate('margin.bottom', 'g.margin.bottom');
+         mapUpdate('margin.left', 'g.margin.left')
+         mapUpdate('isSmooth', `isSmooth`);
+         mapUpdate('isPercent', `isPercent`);
+         mapUpdate('leftYAxis.min', `leftYAxis.min`);
+         mapUpdate('leftYAxis.max', `leftYAxis.max`);
+         mapUpdate('leftYAxis.format.string', `leftYAxis.format.string`);
+         mapUpdate('leftYAxis.format.prefix', `leftYAxis.format.prefix`);
+         mapUpdate('leftYAxis.format.suffix', `leftYAxis.format.suffix`);
+         mapUpdate('leftYAxis.format.isDate', `leftYAxis.format.isDate`);
+         mapUpdate('rightYAxis.min', `rightYAxis.min`);
+         mapUpdate('rightYAxis.max', `rightYAxis.max`);
+         mapUpdate('rightYAxis.format.string', `rightYAxis.format.string`);
+         mapUpdate('rightYAxis.format.prefix', `rightYAxis.format.prefix`);
+         mapUpdate('rightYAxis.format.suffix', `rightYAxis.format.suffix`);
+         mapUpdate('rightYAxis.format.isDate', `rightYAxis.format.isDate`);
+         mapUpdate('bottomXAxis.padding', `bottomXAxis.padding`);
+         mapUpdate('bottomXAxis.min', `bottomXAxis.min`);
+         mapUpdate('bottomXAxis.max', `bottomXAxis.max`);
+         mapUpdate('bottomXAxis.format.string', `bottomXAxis.format.string`);
+         mapUpdate('bottomXAxis.format.prefix', `bottomXAxis.format.prefix`);
+         mapUpdate('bottomXAxis.format.suffix', `bottomXAxis.format.suffix`);
+         mapUpdate('bottomXAxis.format.isDate', `bottomXAxis.format.isDate`);
+         mapUpdate('bottomXAxis.margin.left', `bottomXAxis.margin.right`);
+      }
    }
 };
 
@@ -231,69 +311,12 @@ const charts = {
     **/
 
    column: (elementId, update) => {
-      const chart = utils.baseChart(elementId);
+      const chart = utils.createBaseChart(elementId);
       chart.update = (updates) => {
 
-         // Define all possible updates
-         if (updates !== undefined) {
-
-            const updateConfigValue = (path, defaultValue) => {
-               const updateValue = _get(updates, path);
-               return updateValue !== undefined ? updateValue : defaultValue
-            }
-
-            // Dimension
-            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
-            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
-            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
-            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
-
-            // Update datasets
-            Object.keys(updates.datasets || {}).forEach(key => {
-               if (updates.datasets[key] === null) {
-                  delete chart.datasets[key];
-               } else if (!chart.datasets.hasOwnProperty(key)) {
-                  chart.datasets[key] = updates.datasets[key];
-               } else {
-                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
-                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
-                  chart.datasets[key].borderRadius = updateConfigValue(`datasets.${key}.borderRadius`, chart.datasets[key].borderRadius);
-               }
-            })
-
-            // LeftYAxis
-            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
-            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
-            chart.leftYAxis.format.number = updateConfigValue('leftYAxis.format.number', chart.leftYAxis.format.number);
-            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
-            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
-            chart.leftYAxis.format.isDate = updateConfigValue('leftYAxis.format.isDate', chart.leftYAxis.format.isDate);
-
-            // BottomXAxis
-            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
-            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
-            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
-            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
-            chart.bottomXAxis.format.isDate = updateConfigValue('bottomXAxis.format.isDate', chart.bottomXAxis.format.isDate);
-         }
-
-         // Update dataset and dimensions
-         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
-
-         // Update svg dimensions
-         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
-         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
-
-         // Update dimensions and margins og main group
-         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
-         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
-         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-
-         // Update overlay dimensions
-         chart.overlay.el
-            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-            .attr('width', chart.g.dimensions.width)
-            .attr('height', chart.g.dimensions.height)
+         // Update dimensions and base dimensions
+         utils.updateBaseConfig(chart, updates);
+         utils.updateBaseDimensions(chart);
 
          // Set min and max values for left axis
          let leftYMin = chart.leftYAxis.min === 'auto'
@@ -439,70 +462,12 @@ const charts = {
     **/
 
    groupedColumn: (elementId, update) => {
-      const chart = utils.baseChart(elementId);
+      const chart = utils.createBaseChart(elementId);
       chart.update = (updates) => {
-         // Define all possible updates
-         if (updates !== undefined) {
-
-            const updateConfigValue = (path, defaultValue) => {
-               const updateValue = _get(updates, path); 
-               return updateValue !== undefined ? updateValue : defaultValue
-            }
-
-            // Dimension
-            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
-            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
-            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
-            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
-
-            // Update datasets
-            Object.keys(updates.datasets || {}).forEach(key => {
-               if (updates.datasets[key] === null) {
-                  delete chart.datasets[key];
-               } else if (!chart.datasets.hasOwnProperty(key)) {
-                  chart.datasets[key] = updates.datasets[key];
-               } else {
-                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
-                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
-                  chart.datasets[key].borderRadius = updateConfigValue(`datasets.${key}.borderRadius`, chart.datasets[key].borderRadius);
-               }
-            })
-            
-            // LeftYAxis
-            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
-            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
-            chart.leftYAxis.format.string = updateConfigValue('leftYAxis.format.string', chart.leftYAxis.format.string);
-            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
-            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
-            chart.leftYAxis.format.isDate = updateConfigValue('leftYAxis.format.isDate', chart.leftYAxis.format.isDate);
-
-            // BottomXAxis
-            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
-            chart.bottomXAxis.min = updateConfigValue('bottomXAxis.min', chart.bottomXAxis.min);
-            chart.bottomXAxis.max = updateConfigValue('bottomXAxis.max', chart.bottomXAxis.max);
-            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
-            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
-            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
-            chart.bottomXAxis.format.isDate = updateConfigValue('bottomXAxis.format.isDate', chart.bottomXAxis.format.isDate);
-         }
          
-         // Update dataset and dimensions
-         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
-
-         // Update svg dimensions
-         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
-         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
-
-         // Update dimensions and margins og main group
-         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
-         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
-         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-         
-         // Update overlay dimensions
-         chart.overlay.el
-            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-            .attr('width', chart.g.dimensions.width)
-            .attr('height', chart.g.dimensions.height)
+         // Update dimensions and base dimensions
+         utils.updateBaseConfig(chart, updates);
+         utils.updateBaseDimensions(chart);
 
          // Set min and max values for left axis
          let leftYMin = chart.leftYAxis.min === 'auto'
@@ -654,68 +619,12 @@ const charts = {
 
 
    stackedColumn: (elementId, update) => {
-      const chart = utils.baseChart(elementId);
+      const chart = utils.createBaseChart(elementId);
       chart.update = (updates) => {
-         // Define all possible updates
-         if (updates !== undefined) {
-
-            const updateConfigValue = (path, defaultValue) => {
-               const updateValue = _get(updates, path);
-               return updateValue !== undefined ? updateValue : defaultValue
-            }
-
-            // Dimension
-            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
-            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
-            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
-            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
-
-            // Update datasets
-            Object.keys(updates.datasets).forEach(key => {
-               if (updates.datasets[key] === null) {
-                  delete chart.datasets[key];
-               } else if (!chart.datasets.hasOwnProperty(key)) {
-                  chart.datasets[key] = updates.datasets[key];
-               } else {
-                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
-                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
-                  chart.datasets[key].borderRadius = updateConfigValue(`datasets.${key}.borderRadius`, chart.datasets[key].borderRadius);
-               }
-            })
-
-            // LeftYAxis
-            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
-            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
-            chart.leftYAxis.format.string = updateConfigValue('leftYAxis.format.string', chart.leftYAxis.format.string);
-            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
-            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
-
-            // BottomXAxis
-            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
-            chart.bottomXAxis.min = updateConfigValue('bottomXAxis.min', chart.bottomXAxis.min);
-            chart.bottomXAxis.max = updateConfigValue('bottomXAxis.max', chart.bottomXAxis.max);
-            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
-            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
-            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
-         }
          
-         // Update dataset and dimensions
-         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
-
-         // Update svg dimensions
-         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
-         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
-
-         // Update dimensions and margins og main group
-         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
-         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
-         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-         
-         // Update overlay dimensions
-         chart.overlay.el
-            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-            .attr('width', chart.g.dimensions.width)
-            .attr('height', chart.g.dimensions.height)
+         // Update dimensions and base dimensions
+         utils.updateBaseConfig(chart, updates);
+         utils.updateBaseDimensions(chart);
 
          // Update bottom axis
          let bottomXDomain = []
@@ -860,76 +769,15 @@ const charts = {
     **/
 
    line: (elementId, update) => {
-      const chart = utils.baseChart(elementId, {
+      const chart = utils.createBaseChart(elementId, {
          'bottomXAxis.margin.left': 20,
          'bottomXAxis.margin.right': 20
       });
       chart.update = (updates) => {
       
-         // Define all possible updates
-         if (updates !== undefined) {
-
-            const updateConfigValue = (path, defaultValue) => {
-               const updateValue = _get(updates, path);
-               return updateValue !== undefined ? updateValue : defaultValue
-            }
-
-            // Dimension
-            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
-            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
-            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
-            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
-
-            // Update datasets
-            Object.keys(updates.datasets).forEach(key => {
-               if (updates.datasets[key] === null) {
-                  delete chart.datasets[key];
-               } else if (!chart.datasets.hasOwnProperty(key)) {
-                  chart.datasets[key] = updates.datasets[key];
-               } else {
-                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
-                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
-                  chart.datasets[key].radius = updateConfigValue(`datasets.${key}.radius`, chart.datasets[key].radius);
-               }
-            })
-
-            // LeftYAxis
-            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
-            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
-            chart.leftYAxis.format.string = updateConfigValue('leftYAxis.format.string', chart.leftYAxis.format.string);
-            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
-            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
-
-            // BottomXAxis
-            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
-            chart.bottomXAxis.min = updateConfigValue('bottomXAxis.min', chart.bottomXAxis.min);
-            chart.bottomXAxis.max = updateConfigValue('bottomXAxis.max', chart.bottomXAxis.max);
-            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
-            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
-            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
-         }
-
-         // Update dataset and dimensions
-         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
-
-         // Update svg dimensions
-         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
-         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
-
-         // Update dimensions and margins og main group
-         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
-         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
-         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-         
-         // Update overlay dimensions
-         chart.overlay.el
-            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-            .attr('width', chart.g.dimensions.width)
-            .attr('height', chart.g.dimensions.height)
-
-         // Updatea clip path rect
-         chart.clipPath.rect
-            .attr("width", chart.g.dimensions.width)   
+         // Update dimensions and base dimensions
+         utils.updateBaseConfig(chart, updates);
+         utils.updateBaseDimensions(chart); 
 
          // Set min and max values for left axis
          let leftYMin = chart.leftYAxis.min === 'auto'
@@ -1057,67 +905,12 @@ const charts = {
     **/
 
    area: (elementId, update) => {
-      const chart = utils.baseChart(elementId);
+      const chart = utils.createBaseChart(elementId);
       chart.update = (updates) => {
-         // Define all possible updates
-         if (updates !== undefined) {
-
-            const updateConfigValue = (path, defaultValue) => {
-               const updateValue = _get(updates, path);
-               return updateValue !== undefined ? updateValue : defaultValue
-            }
-
-            // Dimension
-            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
-            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
-            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
-            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
-
-            // Update datasets
-            Object.keys(updates.datasets).forEach(key => {
-               if (updates.datasets[key] === null) {
-                  delete chart.datasets[key];
-               } else if (!chart.datasets.hasOwnProperty(key)) {
-                  chart.datasets[key] = updates.datasets[key];
-               } else {
-                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
-                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
-                  chart.datasets[key].radius = updateConfigValue(`datasets.${key}.radius`, chart.datasets[key].radius);
-               }
-            })
-
-            // LeftYAxis
-            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
-            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
-            chart.leftYAxis.format.number = updateConfigValue('leftYAxis.format.number', chart.leftYAxis.format.number);
-            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
-            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
-
-            // BottomXAxis
-            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
-            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
-            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
-            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
-            chart.bottomXAxis.format.isDate = updateConfigValue('bottomXAxis.format.isDate', chart.bottomXAxis.format.isDate);
-         }
-
-         // Update dataset and dimensions
-         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
-
-         // Update svg dimensions
-         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
-         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
-
-         // Update dimensions and margins og main group
-         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
-         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
-         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-
-         // Update overlay dimensions
-         chart.overlay.el
-            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-            .attr('width', chart.g.dimensions.width)
-            .attr('height', chart.g.dimensions.height)
+         
+         // Update dimensions and base dimensions
+         utils.updateBaseConfig(chart, updates);
+         utils.updateBaseDimensions(chart);
 
          // Set min and max values for left axis
          let leftYMin = chart.leftYAxis.min === 'auto'
@@ -1272,72 +1065,12 @@ const charts = {
     **/
 
    stackedArea: (elementId, update) => {
-      const chart = utils.baseChart(elementId);
+      const chart = utils.createBaseChart(elementId);
       chart.update = (updates) => {
          
-         // Define all possible updates
-         if (updates !== undefined) {
-
-            const updateConfigValue = (path, defaultValue) => {
-               const updateValue = _get(updates, path);
-               return updateValue !== undefined ? updateValue : defaultValue
-            }
-
-            // Dimension
-            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
-            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
-            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
-            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
-
-            // Update datasets
-            Object.keys(updates.datasets || {}).forEach(key => {
-               if (updates.datasets[key] === null) {
-                  delete chart.datasets[key];
-               } else if (!chart.datasets.hasOwnProperty(key)) {
-                  chart.datasets[key] = updates.datasets[key];
-               } else {
-                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
-                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
-                  chart.datasets[key].radius = updateConfigValue(`datasets.${key}.radius`, chart.datasets[key].radius);
-               }
-            })
-
-            // Update percent setting
-            chart.isSmooth = updateConfigValue('isSmooth', chart.isSmooth);
-            chart.isPercent = updateConfigValue('isPercent', chart.isPercent);
-
-            // LeftYAxis
-            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
-            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
-            chart.leftYAxis.format.number = updateConfigValue('leftYAxis.format.number', chart.leftYAxis.format.number);
-            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
-            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
-
-            // BottomXAxis
-            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
-            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
-            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
-            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
-            chart.bottomXAxis.format.isDate = updateConfigValue('bottomXAxis.format.isDate', chart.bottomXAxis.format.isDate);
-         }
-
-         // Update dataset and dimensions
-         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
-
-         // Update svg dimensions
-         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
-         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
-
-         // Update dimensions and margins og main group
-         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
-         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
-         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-
-         // Update overlay dimensions
-         chart.overlay.el
-            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-            .attr('width', chart.g.dimensions.width)
-            .attr('height', chart.g.dimensions.height)
+         // Update dimensions and base dimensions
+         utils.updateBaseConfig(chart, updates);
+         utils.updateBaseDimensions(chart);
 
          // Update bottom axis
          let bottomXDomain = []
@@ -1501,78 +1234,12 @@ const charts = {
     **/
 
    lineColumn: (elementId, update) => {
-      const chart = utils.baseChart(elementId);
+      const chart = utils.createBaseChart(elementId);
       chart.update = (updates) => {
-         // Define all possible updates
-         if (updates !== undefined) {
-
-            const updateConfigValue = (path, defaultValue) => {
-               const updateValue = _get(updates, path);
-               return updateValue !== undefined ? updateValue : defaultValue
-            }
-
-            // Dimension
-            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
-            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
-            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
-            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
-
-            // Update datasets
-            Object.keys(updates.datasets).forEach(key => {
-               if (updates.datasets[key] === null) {
-                  delete chart.datasets[key];
-               } else if (!chart.datasets.hasOwnProperty(key)) {
-                  chart.datasets[key] = updates.datasets[key];
-               } else {
-                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
-                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
-                  chart.datasets[key].radius = updateConfigValue(`datasets.${key}.radius`, chart.datasets[key].radius);
-               }
-            })
-
-            // LeftYAxis
-            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
-            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
-            chart.leftYAxis.format.string = updateConfigValue('leftYAxis.format.string', chart.leftYAxis.format.string);
-            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
-            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
-
-            // rightYAxis
-            chart.rightYAxis.min = updateConfigValue('rightYAxis.min', chart.rightYAxis.min);
-            chart.rightYAxis.max = updateConfigValue('rightYAxis.max', chart.rightYAxis.max);
-            chart.rightYAxis.format.string = updateConfigValue('rightYAxis.format.string', chart.rightYAxis.format.string);
-            chart.rightYAxis.format.prefix = updateConfigValue('rightYAxis.format.prefix', chart.rightYAxis.format.prefix);
-            chart.rightYAxis.format.suffix = updateConfigValue('rightYAxis.format.suffix', chart.rightYAxis.format.suffix);
-
-            // BottomXAxis
-            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
-            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
-            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
-            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
-            chart.bottomXAxis.format.isDate = updateConfigValue('bottomXAxis.format.isDate', chart.bottomXAxis.format.isDate);
-         }
-
-         // Update dataset and dimensions
-         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
-
-         // Update svg dimensions
-         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
-         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
-
-         // Update dimensions and margins og main group
-         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
-         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
-         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-
-         // Update overlay dimensions
-         chart.overlay.el
-            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-            .attr('width', chart.g.dimensions.width)
-            .attr('height', chart.g.dimensions.height)
-
-         // Update overlay dimensions
-         chart.rightYAxis.el
-            .attr('transform', 'translate(' + chart.g.dimensions.width + ',0)')
+        
+         // Update dimensions and base dimensions
+         utils.updateBaseConfig(chart, updates);
+         utils.updateBaseDimensions(chart);
 
          // Line Data
          const allData = [];
@@ -1863,79 +1530,17 @@ const charts = {
     **/
 
    timeLine: (elementId, update) => {
-      const chart = utils.baseChart(elementId, {
+      const chart = utils.createBaseChart(elementId, {
          'bottomXAxis.format.string': '%d %b',
          'bottomXAxis.format.isDate': true,
          'bottomXAxis.margin.left': 20,
          'bottomXAxis.margin.right': 20
       });
       chart.update = (updates) => {
+         
          // Define all possible updates
-         if (updates !== undefined) {
-
-            const updateConfigValue = (path, defaultValue) => {
-               const updateValue = _get(updates, path);
-               return updateValue !== undefined ? updateValue : defaultValue
-            }
-
-            // Dimension
-            chart.g.margin.top = updateConfigValue('margin.top', chart.g.margin.top);
-            chart.g.margin.right = updateConfigValue('margin.right', chart.g.margin.right);
-            chart.g.margin.bottom = updateConfigValue('margin.bottom', chart.g.margin.bottom);
-            chart.g.margin.left = updateConfigValue('margin.left', chart.g.margin.left);
-
-            // Update datasets
-            Object.keys(updates.datasets || {}).forEach(key => {
-               if (updates.datasets[key] === null) {
-                  delete chart.datasets[key];
-               } else if (!chart.datasets.hasOwnProperty(key)) {
-                  chart.datasets[key] = updates.datasets[key];
-               } else {
-                  chart.datasets[key].values = updateConfigValue(`datasets.${key}.values`, chart.datasets[key].values);
-                  chart.datasets[key].color = updateConfigValue(`datasets.${key}.color`, chart.datasets[key].color);
-                  chart.datasets[key].radius = updateConfigValue(`datasets.${key}.radius`, chart.datasets[key].radius);
-               }
-            })
-
-            // LeftYAxis
-            chart.leftYAxis.min = updateConfigValue('leftYAxis.min', chart.leftYAxis.min);
-            chart.leftYAxis.max = updateConfigValue('leftYAxis.max', chart.leftYAxis.max);
-            chart.leftYAxis.format.number = updateConfigValue('leftYAxis.format.number', chart.leftYAxis.format.number);
-            chart.leftYAxis.format.prefix = updateConfigValue('leftYAxis.format.prefix', chart.leftYAxis.format.prefix);
-            chart.leftYAxis.format.suffix = updateConfigValue('leftYAxis.format.suffix', chart.leftYAxis.format.suffix);
-
-            // BottomXAxis
-            chart.bottomXAxis.padding = updateConfigValue('bottomXAxis.padding', chart.bottomXAxis.padding);
-            chart.bottomXAxis.min = updateConfigValue('bottomXAxis.min', chart.bottomXAxis.min);
-            chart.bottomXAxis.max = updateConfigValue('bottomXAxis.max', chart.bottomXAxis.max);
-            chart.bottomXAxis.format.string = updateConfigValue('bottomXAxis.format.string', chart.bottomXAxis.format.string);
-            chart.bottomXAxis.format.prefix = updateConfigValue('bottomXAxis.format.prefix', chart.bottomXAxis.format.prefix);
-            chart.bottomXAxis.format.suffix = updateConfigValue('bottomXAxis.format.suffix', chart.bottomXAxis.format.suffix);
-            chart.bottomXAxis.format.isDate = updateConfigValue('bottomXAxis.format.isDate', chart.bottomXAxis.format.isDate);
-
-         }
-
-         // Update dataset and dimensions
-         chart.container.dimensions = chart.container.el.node().getBoundingClientRect();
-
-         // Update svg dimensions
-         chart.svg.el.attr('width', chart.container.dimensions.width).attr('height', chart.container.dimensions.height);
-         chart.axis.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')');
-
-         // Update dimensions and margins og main group
-         chart.g.dimensions.width = +chart.container.dimensions.width - chart.g.margin.left - chart.g.margin.right;
-         chart.g.dimensions.height = +chart.container.dimensions.height - chart.g.margin.top - chart.g.margin.bottom;
-         chart.g.el.attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-
-         // Update overlay dimensions
-         chart.overlay.el
-            .attr('transform', 'translate(' + chart.g.margin.left + ',' + chart.g.margin.top + ')')
-            .attr('width', chart.g.dimensions.width)
-            .attr('height', chart.g.dimensions.height)
-
-         // Updatea clip path rect
-         chart.clipPath.rect
-            .attr("width", chart.g.dimensions.width)
+         utils.updateBaseConfig(chart, updates);
+         utils.updateBaseDimensions(chart);
 
          // Set min and max values for left axis
          let leftYMin = chart.leftYAxis.min === 'auto'
