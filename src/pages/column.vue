@@ -92,6 +92,7 @@
          },200),
          changeData() {
             this.chart.update({
+
                leftYAxis: {
                   max: 'auto',
                   min: 'auto',

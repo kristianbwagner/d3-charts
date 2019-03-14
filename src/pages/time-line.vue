@@ -53,7 +53,8 @@
                'visits': {
                   color: '#008067',
                   lineWidth: 3,
-                  radius: 5,
+                  radius: 4,
+                  isSmooth: true,
                   values: [
                      {x: new Date(2019,0,28), y: 740},
                      {x: new Date(2019,0,29), y: 730},
@@ -72,13 +73,15 @@
                'sessions': {
                   color: '#b1b1b1',
                   lineWidth: 3,
-                  radius: 5,
+                  radius: 4,
+                  isSmooth: true,
                   values: [
                      {x: new Date(2019,0,28), y: 640},
                      {x: new Date(2019,0,29), y: 430},
                      {x: new Date(2019,0,30), y: 640},
                      {x: new Date(2019,0,31), y: 230},
-                     {x: new Date(2019,1,1), y: 240},
+                     {x: new Date(2019,1,1), y: 440},
+                     {x: new Date(2019,1,2), y: 340},
                      {x: new Date(2019,1,3), y: 940},
                      {x: new Date(2019,1,4), y: 130},
                      {x: new Date(2019,1,6), y: 520},
@@ -111,6 +114,7 @@
          }, 200),
          changeTimePeriod() {
             this.chart.update({
+               animationDuration: 700,
                bottomXAxis: {
                   min: new Date(2019,1,4),
                   max: new Date(2019,1,6)
@@ -119,6 +123,7 @@
          },
          resetTimePeriod() {
             this.chart.update({
+               animationDuration: 700,
                bottomXAxis: {
                   min: 'auto',
                   max: 'auto'

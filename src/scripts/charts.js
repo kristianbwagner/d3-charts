@@ -25,6 +25,9 @@ const utils = {
             el: '',
             dimensions: {}
          },
+         animation: {
+            duration: 0
+         },
          axis: {
             el: ''
          },
@@ -283,6 +286,7 @@ const utils = {
          mapUpdate('margin.bottom', 'g.margin.bottom');
          mapUpdate('margin.left', 'g.margin.left')
 
+         // mapUpdate('animation.duration', `animation.duration`);
          mapUpdate('isSmooth', `isSmooth`);
          mapUpdate('isPercent', `isPercent`);
 
@@ -808,7 +812,7 @@ const charts = {
          const leftYDomain = [leftYMin, leftYMax];
          const leftYScale = d3
             .scaleLinear() // Type of scale used for axis
-            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
+            .rangeRound([chart.g.dimensions.height-6, 0]) // The range of the axis
             .domain(leftYDomain) // All values on axis;
          chart.leftYAxis.scale = leftYScale;
 
@@ -838,6 +842,7 @@ const charts = {
             .domain(bottomXDomain) // The values on the axis
          const bottomXAxis = d3
             .axisBottom(bottomXScale)
+            .tickSize(-chart.g.dimensions.height)
             .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
          chart.bottomXAxis.scale = bottomXScale;
          chart.bottomXAxis.el.call(bottomXAxis);
@@ -847,7 +852,7 @@ const charts = {
                .x(d => bottomXScale(d.x))
                .y(d => leftYScale(d.y))
                .defined(d => { return d.y !== undefined})
-               .curve(dataset.isSmooth === true ? d3.curveCatmullRom : d3.curveLinear)
+               .curve(dataset.isSmooth === true ? d3.curveCatmullRom.alpha(0) : d3.curveLinear)
             return line(dataset.values);
          }
 
@@ -941,7 +946,7 @@ const charts = {
          const leftYDomain = [leftYMin, leftYMax];
          const leftYScale = d3
             .scaleLinear() // Type of scale used for axis
-            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
+            .rangeRound([chart.g.dimensions.height-6, 0]) // The range of the axis
             .domain(leftYDomain) // All values on axis;
          chart.leftYAxis.scale = leftYScale;
 
@@ -971,6 +976,7 @@ const charts = {
             .domain(bottomXDomain) // The values on the axis
          const bottomXAxis = d3
             .axisBottom(bottomXScale)
+            .tickSize(-chart.g.dimensions.height)
             .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
          chart.bottomXAxis.scale = bottomXScale;
          chart.bottomXAxis.el.call(bottomXAxis);
@@ -980,7 +986,7 @@ const charts = {
                .x(d => bottomXScale(d.x))
                .y(d => leftYScale(d.y))
                .defined(d => { return d.y !== undefined})
-               .curve(dataset.isSmooth === true ? d3.curveCatmullRom : d3.curveLinear)
+               .curve(dataset.isSmooth === true ? d3.curveCatmullRom.alpha(0) : d3.curveLinear)
             return line(dataset.values);
          }
 
@@ -990,7 +996,7 @@ const charts = {
                .y0(() => leftYScale(0))
                .y1(d => leftYScale(d.y))
                .defined(d => { return d.y !== undefined})
-               .curve(dataset.isSmooth === true ? d3.curveCatmullRom : d3.curveLinear)
+               .curve(dataset.isSmooth === true ? d3.curveCatmullRom.alpha(0) : d3.curveLinear)
             return area(dataset.values);
          }
 
@@ -1104,6 +1110,7 @@ const charts = {
             .domain(bottomXDomain) // The values on the axis
          const bottomXAxis = d3
             .axisBottom(bottomXScale)
+            .tickSize(-chart.g.dimensions.height)
             .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
          chart.bottomXAxis.scale = bottomXScale;
          chart.bottomXAxis.el.call(bottomXAxis);
@@ -1166,7 +1173,7 @@ const charts = {
          const leftYDomain = [leftYMin, leftYMax];
          const leftYScale = d3
             .scaleLinear() // Type of scale used for axis
-            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
+            .rangeRound([chart.g.dimensions.height-6, 0]) // The range of the axis
             .domain(leftYDomain) // All values on axis;
          chart.leftYAxis.scale = leftYScale;
 
@@ -1183,7 +1190,7 @@ const charts = {
                .x(d => bottomXScale(d.x))
                .y(d => leftYScale(chart.isPercent ? d.y1Percent : d.y1))
                .defined(d => { return d.y !== undefined})
-               .curve(chart.isSmooth === true ? d3.curveCatmullRom : d3.curveLinear)
+               .curve(chart.isSmooth === true ? d3.curveCatmullRom.alpha(0) : d3.curveLinear)
             return line(dataset.values);
          }
 
@@ -1193,7 +1200,7 @@ const charts = {
                .y0(d => leftYScale(chart.isPercent ? d.y0Percent : d.y0))
                .y1(d => leftYScale(chart.isPercent ? d.y1Percent : d.y1))
                .defined(d => { return d.y !== undefined})
-               .curve(chart.isSmooth === true ? d3.curveCatmullRom : d3.curveLinear)
+               .curve(chart.isSmooth === true ? d3.curveCatmullRom.alpha(0) : d3.curveLinear)
                return area(dataset.values);
          }
 
@@ -1372,7 +1379,7 @@ const charts = {
                   return scale(d.y);
                })
                .defined(d => { return d.y !== undefined})
-               .curve(dataset.smooth === true ? d3.curveCatmullRom : d3.curveLinear)
+               .curve(dataset.smooth === true ? d3.curveCatmullRom.alpha(0) : d3.curveLinear)
             return line(dataset.values);
          }
 
@@ -1557,6 +1564,9 @@ const charts = {
          utils.updateBaseConfig(chart, updates);
          utils.updateBaseDimensions(chart);
 
+         // Get animation duration from update 
+         const animationDuration = (updates || {}).animationDuration || 0;
+
          // Set min and max values for left axis
          let leftYMin = chart.leftYAxis.min === 'auto'
             ? d3.min(Object.values(chart.datasets).map(d => d3.min(d.values, v => v.y)))
@@ -1572,7 +1582,7 @@ const charts = {
          const leftYDomain = [leftYMin, leftYMax];
          const leftYScale = d3
             .scaleLinear() // Type of scale used for axis
-            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
+            .rangeRound([chart.g.dimensions.height - 6, 0]) // The range of the axis
             .domain(leftYDomain) // All values on axis;
          chart.leftYAxis.scale = leftYScale;
 
@@ -1582,7 +1592,7 @@ const charts = {
             .axisLeft(leftYScale)
             .tickSize(gridlineLength)
             .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
-         chart.leftYAxis.el.call(leftYAxis);
+         chart.leftYAxis.el.transition().duration(animationDuration).call(leftYAxis);
 
          // Set min and max values for left axis
          let bottomXMin = chart.bottomXAxis.min === 'auto'
@@ -1627,14 +1637,14 @@ const charts = {
          }
 
          chart.bottomXAxis.scale = bottomXScale;
-         chart.bottomXAxis.el.call(bottomXAxis);
+         chart.bottomXAxis.el.transition().duration(animationDuration).call(bottomXAxis);
 
          const createLine = (dataset) => {
             const line = d3.line()
                .x(d => bottomXScale(d.x))
                .y(d => leftYScale(d.y))
                .defined(d => d.y !== undefined)
-               .curve(dataset.isSmooth === true ? d3.curveCatmullRom : d3.curveLinear)
+               .curve(dataset.isSmooth === true ? d3.curveCatmullRom.alpha(0) : d3.curveLinear)
             return line(dataset.values);
          }
 
@@ -1676,7 +1686,7 @@ const charts = {
             return {x: c.x, y: c.y, color: d.color, radius: d.radius};
          }), d => d.x)
 
-         circles
+         circles.transition().duration(animationDuration)
             .attr("r", d => d.radius !== undefined ? d.radius : 5)
             .attr("cx", d => bottomXScale(d.x))
             .attr("cy", d => leftYScale(d.y || 0))
@@ -1686,7 +1696,7 @@ const charts = {
 
          const line = series.selectAll(".line").data(d => [d], d => d.name)
 
-         line
+         line.transition().duration(animationDuration)
             .style("stroke-width", d => d.lineWidth || 3)
             .style("stroke", d => d.color)
             .attr("d", d => createLine(d))
