@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 import _get from 'lodash/get';
 import _set from 'lodash/set';
 
+// Helpers for creating charts
 const utils = {
    formatValue: (value, config) => {
       const formatter = config || {};
@@ -13,6 +14,7 @@ const utils = {
       return `${formatter.prefix || ''} ${formattedString} ${formatter.suffix || ''}`
    },
    createBaseChart(elementId, customConfig) {
+
       const config = {
          container: {
             id: '',
@@ -119,7 +121,7 @@ const utils = {
 
       // Create y axis
       config.leftYAxis.el = config.axis.el.append('g')
-         .attr('class', 'left-y-axis');
+         .attr('class', 'left-y-axis')
 
       // Create y axis
       config.rightYAxis.el = config.axis.el.append('g')
@@ -211,8 +213,8 @@ const utils = {
       }
 
       // Add default delete callback
-      chart.delete = () => {
-         chart.config.svg.el.remove();
+      config.delete = () => {
+         config.svg.el.remove();
       }
 
       return config;
@@ -261,13 +263,13 @@ const utils = {
             if (updates.datasets[key] === null) {
                delete chart.datasets[key];
             } else if (!chart.datasets.hasOwnProperty(key)) {
-               mapUpdate(`datasets.${key}`, `datasets.${key}`);
+               mapUpdate(`datasets.['${key}']`, `datasets.['${key}']`);
             } else {
-               mapUpdate(`datasets.${key}.values`, `datasets.${key}.values`);
-               mapUpdate(`datasets.${key}.color`, `datasets.${key}.color`);
-               mapUpdate(`datasets.${key}.radius`, `datasets.${key}.radius`);
-               mapUpdate(`datasets.${key}.borderRadius`, `datasets.${key}.borderRadius`);
-               mapUpdate(`datasets.${key}.lineWidth`, `datasets.${key}.lineWidth`);
+               mapUpdate(`datasets.['${key}'].values`, `datasets.['${key}'].values`);
+               mapUpdate(`datasets.['${key}'].color`, `datasets.['${key}'].color`);
+               mapUpdate(`datasets.['${key}'].radius`, `datasets.['${key}'].radius`);
+               mapUpdate(`datasets.['${key}'].borderRadius`, `datasets.['${key}'].borderRadius`);
+               mapUpdate(`datasets.['${key}'].lineWidth`, `datasets.['${key}'].lineWidth`);
             }
          })
 
@@ -276,20 +278,24 @@ const utils = {
          mapUpdate('margin.right', 'g.margin.right');
          mapUpdate('margin.bottom', 'g.margin.bottom');
          mapUpdate('margin.left', 'g.margin.left')
+
          mapUpdate('isSmooth', `isSmooth`);
          mapUpdate('isPercent', `isPercent`);
+
          mapUpdate('leftYAxis.min', `leftYAxis.min`);
          mapUpdate('leftYAxis.max', `leftYAxis.max`);
          mapUpdate('leftYAxis.format.string', `leftYAxis.format.string`);
          mapUpdate('leftYAxis.format.prefix', `leftYAxis.format.prefix`);
          mapUpdate('leftYAxis.format.suffix', `leftYAxis.format.suffix`);
          mapUpdate('leftYAxis.format.isDate', `leftYAxis.format.isDate`);
+
          mapUpdate('rightYAxis.min', `rightYAxis.min`);
          mapUpdate('rightYAxis.max', `rightYAxis.max`);
          mapUpdate('rightYAxis.format.string', `rightYAxis.format.string`);
          mapUpdate('rightYAxis.format.prefix', `rightYAxis.format.prefix`);
          mapUpdate('rightYAxis.format.suffix', `rightYAxis.format.suffix`);
          mapUpdate('rightYAxis.format.isDate', `rightYAxis.format.isDate`);
+
          mapUpdate('bottomXAxis.padding', `bottomXAxis.padding`);
          mapUpdate('bottomXAxis.min', `bottomXAxis.min`);
          mapUpdate('bottomXAxis.max', `bottomXAxis.max`);
@@ -297,11 +303,14 @@ const utils = {
          mapUpdate('bottomXAxis.format.prefix', `bottomXAxis.format.prefix`);
          mapUpdate('bottomXAxis.format.suffix', `bottomXAxis.format.suffix`);
          mapUpdate('bottomXAxis.format.isDate', `bottomXAxis.format.isDate`);
-         mapUpdate('bottomXAxis.margin.left', `bottomXAxis.margin.right`);
+         mapUpdate('bottomXAxis.margin.left', `bottomXAxis.margin.left`);
+         mapUpdate('bottomXAxis.margin.right', `bottomXAxis.margin.right`);
       }
    }
 };
 
+
+// Charts object
 const charts = {
 
    /** 
@@ -859,7 +868,7 @@ const charts = {
          newSeries.selectAll(".line").data(d => [d], d => d.name).enter()
             .append("path")
             .attr("class", "line")
-            .style("stroke-width", d => d.strokeWidth || 3)
+            .style("stroke-width", d => d.lineWidth || 3)
             .style("stroke", d => d.color)
             .style("fill", 'none')
             .attr("d", d => createLine(d))
@@ -887,7 +896,7 @@ const charts = {
 
          const line = series.selectAll(".line").data(d => [d], d => d.name)
 
-         line.style("stroke-width", d => d.strokeWidth || 3)
+         line.style("stroke-width", d => d.lineWidth || 3)
             .style("stroke", d => d.color)
             .attr("d", d => createLine(d))
 
@@ -966,7 +975,7 @@ const charts = {
                .x(d => bottomXScale(d.x))
                .y(d => leftYScale(d.y))
                .defined(d => { return d.y !== undefined})
-               .curve(dataset.smooth === true ? d3.curveCatmullRom : d3.curveLinear)
+               .curve(dataset.isSmooth === true ? d3.curveCatmullRom : d3.curveLinear)
             return line(dataset.values);
          }
 
@@ -976,7 +985,7 @@ const charts = {
                .y0(() => leftYScale(0))
                .y1(d => leftYScale(d.y))
                .defined(d => { return d.y !== undefined})
-               .curve(dataset.smooth === true ? d3.curveCatmullRom : d3.curveLinear)
+               .curve(dataset.isSmooth === true ? d3.curveCatmullRom : d3.curveLinear)
             return area(dataset.values);
          }
 
@@ -1002,7 +1011,7 @@ const charts = {
          newSeries.selectAll(".line").data(d => [d], d => d.name).enter()
             .append("path")
             .attr("class", "line")
-            .style("stroke-width", d => d.strokeWidth || 3)
+            .style("stroke-width", d => d.lineWidth || 3)
             .style("stroke", d => d.color)
             .style("fill", 'none')
             .attr("d", d => createLine(d))
@@ -1010,7 +1019,7 @@ const charts = {
          newSeries.selectAll(".area").data(d => [d], d => d.name).enter()
             .append("path")
             .attr("class", "area")
-            .style("stroke-width", d => d.strokeWidth || 3)
+            .style("stroke-width", d => d.lineWidth || 3)
             .style("stroke", 'none')
             .style("fill", d => d.color)
             .style("opacity", d => d.opacity || 0.2)
@@ -1039,13 +1048,13 @@ const charts = {
 
          const line = series.selectAll(".line").data(d => [d], d => d.name)
 
-         line.style("stroke-width", d => d.strokeWidth || 3)
+         line.style("stroke-width", d => d.lineWidth || 3)
             .style("stroke", d => d.color)
             .attr("d", d => createLine(d))
 
          const area = series.selectAll(".area").data(d => [d], d => d.name)
 
-         area.style("stroke-width", d => d.strokeWidth || 3)
+         area.style("stroke-width", d => d.lineWidth || 3)
             .style("stroke", 'none')
             .style("fill", d => d.color)
             .style("opacity", d => d.opacity || 0.2)
@@ -1191,7 +1200,7 @@ const charts = {
          newSeries.selectAll(".line").data(d => [d], d => d.name).enter()
             .append("path")
             .attr("class", "line")
-            .style("stroke-width", d => d.strokeWidth || 3)
+            .style("stroke-width", d => d.lineWidth || 3)
             .style("stroke", d => d.color)
             .style("fill", 'none')
             .attr("d", d => createLine(d))
@@ -1199,7 +1208,7 @@ const charts = {
          newSeries.selectAll(".area").data(d => [d], d => d.name).enter()
             .append("path")
             .attr("class", "area")
-            .style("stroke-width", d => d.strokeWidth || 3)
+            .style("stroke-width", d => d.lineWidth || 3)
             .style("stroke", 'none')
             .style("fill", d => d.color)
             .style("opacity", d => d.opacity || 0.2)
@@ -1207,13 +1216,13 @@ const charts = {
 
          const line = series.selectAll(".line").data(d => [d], d => d.name)
 
-         line.style("stroke-width", d => d.strokeWidth || 3)
+         line.style("stroke-width", d => d.lineWidth || 3)
             .style("stroke", d => d.color)
             .attr("d", d => createLine(d))
 
          const area = series.selectAll(".area").data(d => [d], d => d.name)
 
-         area.style("stroke-width", d => d.strokeWidth || 3)
+         area.style("stroke-width", d => d.lineWidth || 3)
             .style("stroke", 'none')
             .style("fill", d => d.color)
             .style("opacity", d => d.opacity || 0.2)
@@ -1478,7 +1487,7 @@ const charts = {
          newSeries.selectAll(".line").data(d => [d], d => d.name).enter()
             .append("path")
             .attr("class", "line")
-            .style("stroke-width", d => d.strokeWidth || 3)
+            .style("stroke-width", d => d.lineWidth || 3)
             .style("stroke", d => d.color)
             .style("fill", 'none')
             .attr("d", d => createLine(d))
@@ -1512,7 +1521,7 @@ const charts = {
 
          const line = series.selectAll(".line").data(d => [d], d => d.name)
 
-         line.style("stroke-width", d => d.strokeWidth || 3)
+         line.style("stroke-width", d => d.lineWidth || 3)
             .style("stroke", d => d.color)
             .attr("d", d => createLine(d))
 
@@ -1620,7 +1629,7 @@ const charts = {
          newSeries.selectAll(".line").data(d => [d], d => d.name).enter()
             .append("path")
             .attr("class", "line")
-            .style("stroke-width", d => d.strokeWidth || 3)
+            .style("stroke-width", d => d.lineWidth || 3)
             .style("stroke", d => d.color)
             .style("fill", 'none')
             .attr("d", d => createLine(d))
@@ -1650,7 +1659,7 @@ const charts = {
          const line = series.selectAll(".line").data(d => [d], d => d.name)
 
          line
-            .style("stroke-width", d => d.strokeWidth || 3)
+            .style("stroke-width", d => d.lineWidth || 3)
             .style("stroke", d => d.color)
             .attr("d", d => createLine(d))
 

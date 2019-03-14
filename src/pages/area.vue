@@ -1,42 +1,29 @@
 <template>
-  <div id="app">	
+   <div id="app">	
 
-     <button @click="changeData">Change Data</button>
-		
-     <div 
-         id="chart"
-         style="width: 100%; height: 300px; background: #EFEFEF">
+      <div class="buttons">
+         <button @click="changeData">Change Data</button>
+      </div>
          
-         <div 
-            id="hover"
-            v-if="hoverValue !== ''"
-            :style="{
-               top: hoverTop + 'px',
-               left: hoverLeft + 'px',
-            }">
-            {{hoverValue}}
-         </div>
-     </div>
+      <div 
+            id="area-chart"
+            class="chart">
+            
+            <div 
+               class="chart-hover"
+               v-if="hoverValue !== ''"
+               :style="{
+                  top: hoverTop + 'px',
+                  left: hoverLeft + 'px',
+               }">
+               {{hoverValue}}
+            </div>
+      </div>
 
-  </div>
+   </div>
 </template>
 
 <style lang="scss">
-
-   #chart {
-      position: relative;
-      cursor: pointer;
-   }
-
-   #hover {
-      position: absolute;
-      background: #EFEFEF;
-      border: 1px solid;
-      padding: 4px 6px;
-      pointer-events: none;
-      transform: translateX(-50%)
-   }
-
 </style>
 
 <script>
@@ -58,13 +45,13 @@
       mounted() {
          const vm = this;
          
-         this.chart = new charts.area('#chart', {
+         this.chart = new charts.area('#area-chart', {
             datasets: {
                'conversions': {
-                  color: 'green',
+                  color: '#008067',
                   strokeWidth: 3,
                   radius: 5,
-                  smooth: true,
+                  isSmooth: true,
                   values: [
                      {x: 'DK', y: 1020},
                      {x: 'SE', y: 560},

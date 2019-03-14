@@ -1,14 +1,15 @@
 <template>
   <div id="app">	
 
-     <button @click="changeData">Change Data</button>
-		
-     <div 
-         id="chart"
-         style="width: 100%; height: 300px; background: #EFEFEF">
-         
+      <div class="buttons">
+         <button @click="changeData">Change Data</button>
+      </div>
+
+      <div 
+         id="column-chart"
+         class="chart">
          <div 
-            id="hover"
+            class="chart-hover"
             v-if="hoverValue !== ''"
             :style="{
                top: hoverTop + 'px',
@@ -22,21 +23,6 @@
 </template>
 
 <style lang="scss">
-
-   #chart {
-      position: relative;
-      cursor: pointer;
-   }
-
-   #hover {
-      position: absolute;
-      background: #EFEFEF;
-      border: 1px solid;
-      padding: 4px 6px;
-      pointer-events: none;
-      transform: translateX(-50%)
-   }
-
 </style>
 
 <script>
@@ -58,7 +44,7 @@
       mounted() {
          const vm = this;
          
-         this.chart = new charts.column('#chart', {
+         this.chart = new charts.column('#column-chart', {
             leftYAxis: {
                max: 1200,
                min: -1200,
@@ -71,7 +57,7 @@
             },
             datasets: {
                'visits': {
-                  color: 'green',
+                  color: '#008067',
                   borderRadius: 4,
                   values: [
                      {x: new Date(2019,1,2), y: 1160},

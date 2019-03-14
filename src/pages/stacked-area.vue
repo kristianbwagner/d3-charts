@@ -1,43 +1,30 @@
 <template>
-  <div id="app">	
+   <div id="app">	
 
-     <button @click="absoluteValues">Absolute</button>
-     <button @click="percentValues">Percent</button>
-		
-     <div 
-         id="chart"
-         style="width: 100%; height: 300px; background: #EFEFEF">
+      <div class="buttons">
+         <button @click="absoluteValues">Absolute</button>
+         <button @click="percentValues">Percent</button>
+      </div>
          
-         <div 
-            id="hover"
-            v-if="hoverValue !== ''"
-            :style="{
-               top: hoverTop + 'px',
-               left: hoverLeft + 'px',
-            }">
-            {{hoverValue}}
-         </div>
-     </div>
+      <div 
+            id="stacked-area-chart"
+            class="chart">
+            
+            <div 
+               class="chart-hover"
+               v-if="hoverValue !== ''"
+               :style="{
+                  top: hoverTop + 'px',
+                  left: hoverLeft + 'px',
+               }">
+               {{hoverValue}}
+            </div>
+      </div>
 
-  </div>
+   </div>
 </template>
 
 <style lang="scss">
-
-   #chart {
-      position: relative;
-      cursor: pointer;
-   }
-
-   #hover {
-      position: absolute;
-      background: #EFEFEF;
-      border: 1px solid;
-      padding: 4px 6px;
-      pointer-events: none;
-      transform: translateX(-50%)
-   }
-
 </style>
 
 <script>
@@ -59,12 +46,12 @@
       mounted() {
          const vm = this;
          
-         this.chart = new charts.stackedArea('#chart', {
+         this.chart = new charts.stackedArea('#stacked-area-chart', {
             isSmooth: false,
             isPercent: false,
             datasets: {
                'mobile': {
-                  color: 'green',
+                  color: '#008067',
                   values: [
                      {x: 'DK', y: 1020},
                      {x: 'SE', y: 560},
@@ -74,7 +61,7 @@
                   ]
                },
                'desktop': {
-                  color: 'blue',
+                  color: '#b1b1b1',
                   values: [
                      {x: 'DK', y: 520},
                      {x: 'SE', y: 360},

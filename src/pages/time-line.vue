@@ -1,41 +1,29 @@
 <template>
-  <div id="app">	
-     <button @click="changeTimePeriod">Change time period</button>
-     <button @click="resetTimePeriod">Reset time period</button>
-     <div 
-         id="chart"
-         style="width: 100%; height: 300px; background: #EFEFEF">
-         
-         <div 
-            id="hover"
-            v-if="hoverValue !== ''"
-            :style="{
-               top: hoverTop + 'px',
-               left: hoverLeft + 'px',
-            }">
-            {{hoverValue}}
-         </div>
-     </div>
+   <div id="app">	
 
-  </div>
+         <div class="buttons">
+            <button @click="changeTimePeriod">Change time period</button>
+            <button @click="resetTimePeriod">Reset time period</button>
+         </div>
+      
+         <div 
+            id="time-line-chart"
+            class="chart">
+            <div 
+               class="chart-hover"
+               v-if="hoverValue !== ''"
+               :style="{
+                  top: hoverTop + 'px',
+                  left: hoverLeft + 'px',
+               }">
+               {{hoverValue}}
+            </div>
+      </div>
+
+   </div>
 </template>
 
 <style lang="scss">
-
-   #chart {
-      position: relative;
-      cursor: pointer;
-   }
-
-   #hover {
-      position: absolute;
-      background: #EFEFEF;
-      border: 1px solid;
-      padding: 4px 6px;
-      pointer-events: none;
-      transform: translateX(-50%)
-   }
-
 </style>
 
 <script>
@@ -57,13 +45,12 @@
       mounted() {
          const vm = this;
          
-         this.chart = new charts.timeLine('#chart', {
+         this.chart = new charts.timeLine('#time-line-chart', {
             datasets: {
                'visits': {
-                  color: 'green',
-                  strokeWidth: 3,
+                  color: '#008067',
+                  lineWidth: 3,
                   radius: 5,
-                  isSmooth: true,
                   values: [
                      {x: new Date(2019,1,1), y: 1020},
                      {x: new Date(2019,1,2), y: 840},
@@ -73,24 +60,19 @@
                      {x: new Date(2019,1,6), y: 720},
                      {x: new Date(2019,1,7), y: 560},
                      {x: new Date(2019,1,8), y: 2040},
-                     {x: new Date(2019,1,9), y: 530},
-                     {x: new Date(2019,1,10), y: 480}
                   ]
                },
                'sessions': {
-                  color: 'blue',
-                  strokeWidth: 3,
+                  color: '#b1b1b1',
+                  lineWidth: 3,
                   radius: 5,
-                  isSmooth: true,
                   values: [
                      {x: new Date(2019,1,1), y: 0},
                      {x: new Date(2019,1,3), y: 940},
                      {x: new Date(2019,1,4), y: 130},
                      {x: new Date(2019,1,6), y: 520},
                      {x: new Date(2019,1,7), y: 260},
-                     {x: new Date(2019,1,8), y: 640},
-                     {x: new Date(2019,1,9), y: 830},
-                     {x: new Date(2019,1,10), y: 1580}
+                     {x: new Date(2019,1,8), y: 640}
                   ]
                }
             } 

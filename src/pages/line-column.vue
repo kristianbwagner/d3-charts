@@ -1,14 +1,16 @@
 <template>
-  <div id="app">	
+   <div id="app">	
 
-     <button @click="changeData">Change Data</button>
+      <div class="buttons">
+         <button @click="changeData">Change Data</button>
+      </div>
 		
-     <div 
+      <div 
          id="chart"
-         style="width: 100%; height: 300px; background: #EFEFEF">
+         class="chart">
          
          <div 
-            id="hover"
+            class="chart-hover"
             v-if="hoverValue !== ''"
             :style="{
                top: hoverTop + 'px',
@@ -16,27 +18,12 @@
             }">
             {{hoverValue}}
          </div>
-     </div>
+      </div>
 
-  </div>
+   </div>
 </template>
 
 <style lang="scss">
-
-   #chart {
-      position: relative;
-      cursor: pointer;
-   }
-
-   #hover {
-      position: absolute;
-      background: #EFEFEF;
-      border: 1px solid;
-      padding: 4px 6px;
-      pointer-events: none;
-      transform: translateX(-50%)
-   }
-
 </style>
 
 <script>
@@ -67,7 +54,7 @@
                'visits': {
                   type: 'column',
                   axis: 'left',
-                  color: 'grey',
+                  color: '#008067',
                   borderRadius: 5,
                   values: [
                      {x: 'DK', y: 1540},
@@ -80,7 +67,7 @@
                'visits last year': {
                   type: 'column',
                   axis: 'left',
-                  color: 'lightgrey',
+                  color: '#b1b1b1',
                   borderRadius: 5,
                   values: [
                      {x: 'DK', y: 1240},
@@ -90,28 +77,14 @@
                      {x: 'DE', y: 680}
                   ]
                },
-               'conv. rate': {
-                  type: 'line',
-                  axis: 'right',
-                  color: 'green',
-                  strokeWidth: 3,
-                  radius: 5,
-                  values: [
-                     {x: 'DK', y: 0.1020},
-                     {x: 'SE', y: 0.460},
-                     {x: 'NO', y: 0.2240},
-                     {x: 'FI', y: 0.330},
-                     {x: 'DE', y: 0.480}
-                  ]
-               },
                'interaction rate': {
                   type: 'line',
                   axis: 'right',
-                  color: 'red',
+                  color: '#424242',
                   strokeWidth: 3,
                   radius: 5,
                   values: [
-                     {x: 'DK', y: 0.520},
+                     {x: 'DK', y: 0.820},
                      {x: 'SE', y: 0.460},
                      {x: 'NO', y: 0.440},
                      {x: 'FI', y: 0.930},
