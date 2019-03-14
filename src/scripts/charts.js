@@ -11,7 +11,11 @@ const utils = {
          : formatter.isDate 
          ? d3.timeFormat(formatter.string)(value) 
          : d3.format(formatter.string)(value);
-      return `${formatter.prefix || ''} ${formattedString} ${formatter.suffix || ''}`
+      if (formattedString === 'auto') {
+         return
+      } else {
+         return `${formatter.prefix || ''} ${formattedString} ${formatter.suffix || ''}`
+      }
    },
    createBaseChart(elementId, customConfig) {
 
@@ -38,7 +42,7 @@ const utils = {
             margin: {
                top: 32,
                right: 32,
-               bottom: 32,
+               bottom: 40,
                left: 50
             }
          },
@@ -305,6 +309,7 @@ const utils = {
          mapUpdate('bottomXAxis.format.isDate', `bottomXAxis.format.isDate`);
          mapUpdate('bottomXAxis.margin.left', `bottomXAxis.margin.left`);
          mapUpdate('bottomXAxis.margin.right', `bottomXAxis.margin.right`);
+         mapUpdate('bottomXAxis.filter', `bottomXAxis.filter`);
       }
    }
 };
@@ -1540,10 +1545,11 @@ const charts = {
 
    timeLine: (elementId, update) => {
       const chart = utils.createBaseChart(elementId, {
-         'bottomXAxis.format.string': '%d %b',
+         'bottomXAxis.format.string': 'auto',
          'bottomXAxis.format.isDate': true,
          'bottomXAxis.margin.left': 20,
-         'bottomXAxis.margin.right': 20
+         'bottomXAxis.margin.right': 20,
+         'bottomXAxis.filter': d => d.getHours() === 0
       });
       chart.update = (updates) => {
          
@@ -1596,7 +1602,30 @@ const charts = {
 
          const bottomXAxis = d3
             .axisBottom(bottomXScale)
-            .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
+            .tickSize(-chart.g.dimensions.height)
+
+         if (chart.bottomXAxis.format.string !== 'auto') {
+            bottomXAxis.tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format))
+         }
+            
+
+         // Calculate which ticks to remove for readability
+         let ticks = bottomXScale.ticks()
+         if (chart.bottomXAxis.filter) {
+            ticks = ticks.filter(chart.bottomXAxis.filter);
+         }
+         if (ticks.length > 1) {
+            const firstTick = ticks[0];
+            const firstTickX = bottomXScale(firstTick);
+            const secondTick = ticks[1];
+            const secondTickX = bottomXScale(secondTick);
+            const distanceBetween = secondTickX - firstTickX;
+            const removalIndex = Math.ceil(60 / distanceBetween);
+            bottomXAxis.tickValues(ticks.filter((d, i) => {
+               return i % removalIndex === 0;
+            }))
+         }
+
          chart.bottomXAxis.scale = bottomXScale;
          chart.bottomXAxis.el.call(bottomXAxis);
 
@@ -1622,7 +1651,6 @@ const charts = {
          chart.bottomXAxis.definedValues = xValues;
 
          const series = chart.g.el.selectAll(".series-group").data(seriesData, (d) => d.name);
-
          const newSeries = series.enter().append("g")
             .attr("class", "series-group")
 

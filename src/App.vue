@@ -60,7 +60,8 @@
       height: 350px;
       background: #FFF;
       border: 1px solid #E4E4E4;
-      margin: 0 30px;
+      margin: 12px 30px;
+      overflow: hidden;
    }
 
    .chart-hover {
@@ -82,7 +83,8 @@
    }
 
    .buttons {
-      margin: 12px 30px;
+      padding: 12px 30px;
+      border-bottom: 1px solid #E4E4E4;
    }
 
    button {

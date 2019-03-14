@@ -46,14 +46,21 @@
          const vm = this;
          
          this.chart = new charts.timeLine('#time-line-chart', {
+            bottomXAxis: {
+               format: {string: '%_d. %b'},
+            },
             datasets: {
                'visits': {
                   color: '#008067',
                   lineWidth: 3,
                   radius: 5,
                   values: [
-                     {x: new Date(2019,1,1), y: 1020},
-                     {x: new Date(2019,1,2), y: 840},
+                     {x: new Date(2019,0,28), y: 740},
+                     {x: new Date(2019,0,29), y: 730},
+                     {x: new Date(2019,0,30), y: 1240},
+                     {x: new Date(2019,0,31), y: 920},
+                     {x: new Date(2019,1,1), y: 1240},
+                     {x: new Date(2019,1,2), y: 730},
                      {x: new Date(2019,1,3), y: 1640},
                      {x: new Date(2019,1,4), y: 730},
                      {x: new Date(2019,1,5), y: 480},
@@ -67,7 +74,11 @@
                   lineWidth: 3,
                   radius: 5,
                   values: [
-                     {x: new Date(2019,1,1), y: 0},
+                     {x: new Date(2019,0,28), y: 640},
+                     {x: new Date(2019,0,29), y: 430},
+                     {x: new Date(2019,0,30), y: 640},
+                     {x: new Date(2019,0,31), y: 230},
+                     {x: new Date(2019,1,1), y: 240},
                      {x: new Date(2019,1,3), y: 940},
                      {x: new Date(2019,1,4), y: 130},
                      {x: new Date(2019,1,6), y: 520},
@@ -93,6 +104,7 @@
       destroyed() {
          window.removeEventListener('resize', this.onResize);
       },
+      computed: {},
       methods: {
          onResize: debounce(function(){
             this.chart.update()
