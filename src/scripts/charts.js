@@ -324,6 +324,8 @@ const utils = {
          mapUpdate('bottomXAxis.margin.left', `bottomXAxis.margin.left`);
          mapUpdate('bottomXAxis.margin.right', `bottomXAxis.margin.right`);
          mapUpdate('bottomXAxis.filter', `bottomXAxis.filter`);
+         mapUpdate('bottomXAxis.gridlines.hidden', `bottomXAxis.gridlines.hidden`);
+         mapUpdate('bottomXAxis.gridlines.position', `bottomXAxis.gridlines.position`);
       }
    },
    adjustBandGridlines(chart) {

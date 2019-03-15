@@ -53,7 +53,6 @@
          opacity: 1;
          text-decoration: underline;
       }
-
    }
 
    .chart {
@@ -61,8 +60,8 @@
       cursor: pointer;
       height: 350px;
       background: #FFF;
-      border: 1px solid #E4E4E4;
       margin: 16px;
+      border: 1px solid #E4E4E4;
       overflow: hidden;
    }
 
@@ -72,8 +71,6 @@
       height: 120px;
       background: #FFF;
       margin: 16px;
-      //overflow: hidden;
-      //border: 1px solid #E4E4E4;
    }
 
    .chart-hover {
@@ -116,6 +113,18 @@
 
    text {
       font-size: 12px;
+   }
+
+   .loading-overlay {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      background: rgba(255,255,255,0.6);
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
    }
 
 </style>
