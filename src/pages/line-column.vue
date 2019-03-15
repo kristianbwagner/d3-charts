@@ -46,9 +46,15 @@
          const vm = this;
          
          this.chart = new charts.lineColumn('#chart', {
+            bottomXAxis: {
+               padding: 0.25
+            },
+            margin: {
+               right: 60
+            },
             rightYAxis: {
                format: {string: ',.0%'},
-               max: 1
+               max: 1,
             },
             datasets: {
                'visits': {
@@ -68,6 +74,19 @@
                   type: 'column',
                   axis: 'left',
                   color: '#b1b1b1',
+                  borderRadius: 5,
+                  values: [
+                     {x: 'DK', y: 1240},
+                     {x: 'SE', y: 630},
+                     {x: 'NO', y: 620},
+                     {x: 'FI', y: 430},
+                     {x: 'DE', y: 680}
+                  ]
+               },
+               'visits 2017': {
+                  type: 'column',
+                  axis: 'left',
+                  color: '#EFEFEF',
                   borderRadius: 5,
                   values: [
                      {x: 'DK', y: 1240},

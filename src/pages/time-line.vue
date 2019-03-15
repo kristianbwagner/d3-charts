@@ -53,7 +53,7 @@
                'visits': {
                   color: '#008067',
                   lineWidth: 3,
-                  radius: 4,
+                  radius: 5,
                   isSmooth: true,
                   values: [
                      {x: new Date(2019,0,28), y: 740},
@@ -73,7 +73,7 @@
                'sessions': {
                   color: '#b1b1b1',
                   lineWidth: 3,
-                  radius: 4,
+                  radius: 5,
                   isSmooth: true,
                   values: [
                      {x: new Date(2019,0,28), y: 640},

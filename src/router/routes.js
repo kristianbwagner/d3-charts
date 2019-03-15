@@ -38,5 +38,15 @@ export default [
       path: '/time-line',
       name: "time-line",
       component: () => import('@/pages/time-line.vue'),
+   },
+   {
+      path: '/spark-line',
+      name: "spark-line",
+      component: () => import('@/pages/spark-line.vue'),
+   },
+   {
+      path: '/spark-column',
+      name: "spark-column",
+      component: () => import('@/pages/spark-column.vue'),
    }
 ]

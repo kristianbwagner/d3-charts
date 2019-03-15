@@ -53,6 +53,9 @@
                format: {
                   string: '%_d %b',
                   isDate: true
+               },
+               gridlines: {
+                  hidden: true
                }
             },
             datasets: {

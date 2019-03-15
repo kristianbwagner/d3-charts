@@ -46,7 +46,7 @@ const utils = {
                top: 32,
                right: 32,
                bottom: 40,
-               left: 50
+               left: 60
             }
          },
          datasets: {},
@@ -59,6 +59,10 @@ const utils = {
             },
             min: 'auto',
             max: 'auto',
+            gridlines: {
+               hidden: false,
+               position: 'center'
+            },
             format: {
                string: '',
                prefix: '',
@@ -70,6 +74,9 @@ const utils = {
             el: '',
             min: 'auto',
             max: 'auto',
+            gridlines: {
+               hidden: false
+            },
             format: {
                string: ',.0f',
                prefix: '',
@@ -81,6 +88,9 @@ const utils = {
             el: '',
             min: 'auto',
             max: 'auto',
+            gridlines: {
+               hidden: false,
+            },
             format: {
                string: ',.0f',
                prefix: '',
@@ -315,6 +325,15 @@ const utils = {
          mapUpdate('bottomXAxis.margin.right', `bottomXAxis.margin.right`);
          mapUpdate('bottomXAxis.filter', `bottomXAxis.filter`);
       }
+   },
+   adjustBandGridlines(chart) {
+      // Adjust gridlines so they are between groups
+      const gridLines = chart.bottomXAxis.el.selectAll('line');
+      const bandWidth = chart.bottomXAxis.scale.bandwidth();
+      const tickAdjust = (bandWidth + (bandWidth * chart.bottomXAxis.padding)) / 2;
+      gridLines
+         .style('transform', `translateX(${tickAdjust}px)`)
+         .style('opacity', (d,i) => i === gridLines.size() - 1 ? 0 : 1);
    }
 };
 
@@ -329,7 +348,9 @@ const charts = {
     **/
 
    column: (elementId, update) => {
-      const chart = utils.createBaseChart(elementId);
+      const chart = utils.createBaseChart(elementId, {
+         'bottomXAxis.gridlines.position': 'betweenGroups'
+      });
       chart.update = (updates) => {
 
          // Update dimensions and base dimensions
@@ -356,12 +377,14 @@ const charts = {
          chart.leftYAxis.scale = leftYScale;
 
          // Draw axis with .call d3 function
-         const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3
             .axisLeft(leftYScale)
-            .tickSize(gridlineLength)
+            .tickSize(!chart.leftYAxis.gridlines.hidden ? -chart.g.dimensions.width : 0)
             .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
-         chart.leftYAxis.el.call(leftYAxis);
+         
+         chart.leftYAxis.el
+            .call(leftYAxis)
+            .selectAll('text').style('transform', 'translateX(-6px)');
 
          // Update bottom axis
          let bottomXDomain = []
@@ -380,13 +403,22 @@ const charts = {
             .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width-chart.bottomXAxis.margin.right]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
             .padding(chart.bottomXAxis.padding) // Padding between columns
+         
          const bottomXAxis = d3
             .axisBottom(bottomXScale)
             .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format))
+            .tickSize(!chart.bottomXAxis.gridlines.hidden ? -chart.g.dimensions.height : 0)
             
          chart.bottomXAxis.scale = bottomXScale;
-         chart.bottomXAxis.el.call(bottomXAxis);
+         chart.bottomXAxis.el
+            .call(bottomXAxis)
+            .selectAll('text').style('transform', 'translateY(6px)');
 
+         // Adjust gridlines so they are between groups
+         if (chart.bottomXAxis.gridlines.position === 'betweenGroups') {
+            utils.adjustBandGridlines(chart)
+         }
+         
          // Create column data
          const columnGroupData = bottomXDomain.map(groupName => {
             const groupValues = Object.keys(chart.datasets).map(datasetName => {
@@ -480,7 +512,9 @@ const charts = {
     **/
 
    groupedColumn: (elementId, update) => {
-      const chart = utils.createBaseChart(elementId);
+      const chart = utils.createBaseChart(elementId, {
+         'bottomXAxis.gridlines.position': 'betweenGroups'
+      });
       chart.update = (updates) => {
          
          // Update dimensions and base dimensions
@@ -507,12 +541,13 @@ const charts = {
          chart.leftYAxis.scale = leftYScale;
 
          // Draw axis with .call d3 function
-         const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3
             .axisLeft(leftYScale)
-            .tickSize(gridlineLength)
+            .tickSize(!chart.leftYAxis.gridlines.hidden ? -chart.g.dimensions.width : 0)
             .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
-         chart.leftYAxis.el.call(leftYAxis);
+         chart.leftYAxis.el
+            .call(leftYAxis)
+            .selectAll('text').style('transform', 'translateX(-6px)')
 
          // Get all x values from all datasets
          let bottomXDomain = []
@@ -533,12 +568,21 @@ const charts = {
             .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width-chart.bottomXAxis.margin.right]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
             .padding(chart.bottomXAxis.padding) // Padding between columns
+         
          const bottomXAxis = d3
             .axisBottom(bottomXScale)
+            .tickSize(!chart.bottomXAxis.gridlines.hidden ? -chart.g.dimensions.height : 0)
             .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
-
+         
          chart.bottomXAxis.scale = bottomXScale;
-         chart.bottomXAxis.el.call(bottomXAxis);
+         chart.bottomXAxis.el
+            .call(bottomXAxis)
+            .selectAll('text').style('transform', 'translateY(6px)')
+
+         // Adjust gridlines so they are between groups
+         if (chart.bottomXAxis.gridlines.position === 'betweenGroups') {
+            utils.adjustBandGridlines(chart)
+         }
 
          let bottomXGroupDomain = Object.keys(chart.datasets);
          const bottomXGroupScale = d3
@@ -637,7 +681,9 @@ const charts = {
 
 
    stackedColumn: (elementId, update) => {
-      const chart = utils.createBaseChart(elementId);
+      const chart = utils.createBaseChart(elementId, {
+         'bottomXAxis.gridlines.position': 'betweenGroups'
+      });
       chart.update = (updates) => {
          
          // Update dimensions and base dimensions
@@ -663,10 +709,18 @@ const charts = {
             .padding(chart.bottomXAxis.padding) // Padding between columns
          const bottomXAxis = d3
             .axisBottom(bottomXScale)
+            .tickSize(!chart.bottomXAxis.gridlines.hidden ? -chart.g.dimensions.height : 0)
             .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
 
          chart.bottomXAxis.scale = bottomXScale;
-         chart.bottomXAxis.el.call(bottomXAxis);
+         chart.bottomXAxis.el
+            .call(bottomXAxis)
+            .selectAll('text').style('transform', 'translateY(6px)');
+
+         // Adjust gridlines so they are between groups
+         if (chart.bottomXAxis.gridlines.position === 'betweenGroups') {
+            utils.adjustBandGridlines(chart)
+         }
 
          // Stacked Data
          const columnGroupData = bottomXDomain.map(groupName => {
@@ -719,12 +773,14 @@ const charts = {
          chart.leftYAxis.scale = leftYScale;
 
          // Draw axis with .call d3 function
-         const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3
             .axisLeft(leftYScale)
-            .tickSize(gridlineLength)
+            .tickSize(!chart.leftYAxis.gridlines.hidden ? -chart.g.dimensions.width : 0)
             .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
-         chart.leftYAxis.el.call(leftYAxis);
+         
+            chart.leftYAxis.el
+            .call(leftYAxis)
+            .selectAll('text').style('transform', 'translateX(-6px)');
 
          const columnGroup = chart.g.el.selectAll(".column-group").data(columnGroupData, (d) => d.x);
 
@@ -817,12 +873,14 @@ const charts = {
          chart.leftYAxis.scale = leftYScale;
 
          // Draw axis with .call d3 function
-         const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3
             .axisLeft(leftYScale)
-            .tickSize(gridlineLength)
+            .tickSize(!chart.leftYAxis.gridlines.hidden ? -chart.g.dimensions.width : 0)
             .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
-         chart.leftYAxis.el.call(leftYAxis);
+         
+         chart.leftYAxis.el
+            .call(leftYAxis)
+            .selectAll('text').style('transform', 'translateX(-6px)');
 
          // Update bottom axis
          let bottomXDomain = []
@@ -840,12 +898,16 @@ const charts = {
             .scalePoint() // Type of scale used for axis
             .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width - chart.bottomXAxis.margin.right]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
+         
          const bottomXAxis = d3
             .axisBottom(bottomXScale)
-            .tickSize(-chart.g.dimensions.height)
+            .tickSize(!chart.bottomXAxis.gridlines.hidden ? -chart.g.dimensions.height : 0)
             .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
+
          chart.bottomXAxis.scale = bottomXScale;
-         chart.bottomXAxis.el.call(bottomXAxis);
+         chart.bottomXAxis.el
+            .call(bottomXAxis)
+            .selectAll('text').style('transform', 'translateY(6px)');
 
          const createLine = (dataset) => {
             const line = d3.line()
@@ -951,12 +1013,13 @@ const charts = {
          chart.leftYAxis.scale = leftYScale;
 
          // Draw axis with .call d3 function
-         const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3
             .axisLeft(leftYScale)
-            .tickSize(gridlineLength)
+            .tickSize(!chart.leftYAxis.gridlines.hidden ? -chart.g.dimensions.width : 0)
             .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
-         chart.leftYAxis.el.call(leftYAxis);
+         chart.leftYAxis.el
+            .call(leftYAxis)
+            .selectAll('text').style('transform', 'translateX(-6px)');;
 
          // Update bottom axis
          let bottomXDomain = []
@@ -974,12 +1037,16 @@ const charts = {
             .scalePoint() // Type of scale used for axis
             .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width-chart.bottomXAxis.margin.right]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
+         
          const bottomXAxis = d3
             .axisBottom(bottomXScale)
-            .tickSize(-chart.g.dimensions.height)
+            .tickSize(!chart.bottomXAxis.gridlines.hidden ? -chart.g.dimensions.height : 0)
             .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
+
          chart.bottomXAxis.scale = bottomXScale;
-         chart.bottomXAxis.el.call(bottomXAxis);
+         chart.bottomXAxis.el
+            .call(bottomXAxis)
+            .selectAll('text').style('transform', 'translateY(6px)');;
 
          const createLine = (dataset) => {
             const line = d3.line()
@@ -1108,12 +1175,16 @@ const charts = {
             .scalePoint() // Type of scale used for axis
             .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width-chart.bottomXAxis.margin.right]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
+
          const bottomXAxis = d3
             .axisBottom(bottomXScale)
-            .tickSize(-chart.g.dimensions.height)
+            .tickSize(!chart.bottomXAxis.gridlines.hidden ? -chart.g.dimensions.height : 0)
             .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
+
          chart.bottomXAxis.scale = bottomXScale;
-         chart.bottomXAxis.el.call(bottomXAxis);
+         chart.bottomXAxis.el
+            .call(bottomXAxis)
+            .selectAll('text').style('transform', 'translateY(6px)');
 
          const seriesKeys = Object.keys(chart.datasets);
          const seriesData = seriesKeys.map((key, index) => {
@@ -1178,12 +1249,14 @@ const charts = {
          chart.leftYAxis.scale = leftYScale;
 
          // Draw axis with .call d3 function
-         const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3
             .axisLeft(leftYScale)
-            .tickSize(gridlineLength)
+            .tickSize(!chart.leftYAxis.gridlines.hidden ? -chart.g.dimensions.width : 0)
             .tickFormat(d => utils.formatValue(d, leftYFormat))
-         chart.leftYAxis.el.call(leftYAxis);
+         
+         chart.leftYAxis.el
+            .call(leftYAxis)
+            .selectAll('text').style('transform', 'translateX(-6px)');
 
          const createLine = (dataset) => {
             const line = d3.line()
@@ -1255,7 +1328,9 @@ const charts = {
     **/
 
    lineColumn: (elementId, update) => {
-      const chart = utils.createBaseChart(elementId);
+      const chart = utils.createBaseChart(elementId, {
+         'bottomXAxis.gridlines.position': 'betweenGroups'
+      });
       chart.update = (updates) => {
         
          // Update dimensions and base dimensions
@@ -1299,12 +1374,14 @@ const charts = {
          chart.leftYAxis.scale = leftYScale;
 
          // Draw axis with .call d3 function
-         const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3
             .axisLeft(leftYScale)
-            .tickSize(gridlineLength)
+            .tickSize(!chart.leftYAxis.gridlines.hidden ? -chart.g.dimensions.width : 0)
             .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
-         chart.leftYAxis.el.call(leftYAxis);
+         
+         chart.leftYAxis.el
+            .call(leftYAxis)
+            .selectAll('text').style('transform', 'translateX(-6px)');;
 
          // Set min and max values for left axis
          let rightYMin = chart.rightYAxis.min === 'auto'
@@ -1340,13 +1417,16 @@ const charts = {
          }
 
          // Calculate right ticks
-         const rightTickSize = leftDataExists ? 0 : gridlineLength;
+         const rightTickSize = leftDataExists ? 0 : -chart.g.dimensions.width;
          const rightYAxis = d3
             .axisRight(rightYScale)
             .tickSize(rightTickSize)
             .tickValues(rightValues)
             .tickFormat(d => utils.formatValue(d, chart.rightYAxis.format))
-         chart.rightYAxis.el.call(rightYAxis);  
+         
+         chart.rightYAxis.el
+            .call(rightYAxis)
+            .selectAll('text').style('transform', 'translateX(6px)');;  
 
          // Update bottom axis
          let bottomXDomain = []
@@ -1364,12 +1444,22 @@ const charts = {
             .scaleBand() // Type of scale used for axis
             .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width-chart.bottomXAxis.margin.right]) // The range of the axis
             .domain(bottomXDomain) // The values on the axis
-            .padding(0.1)
+            .padding(chart.bottomXAxis.padding)
+         
          const bottomXAxis = d3
             .axisBottom(bottomXScale)
+            .tickSize(!chart.bottomXAxis.gridlines.hidden ? -chart.g.dimensions.height : 0)
             .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
+
          chart.bottomXAxis.scale = bottomXScale;
-         chart.bottomXAxis.el.call(bottomXAxis);
+         chart.bottomXAxis.el
+            .call(bottomXAxis)
+            .selectAll('text').style('transform', 'translateY(6px)');
+
+         // Adjust gridlines so they are between groups
+         if (chart.bottomXAxis.gridlines.position === 'betweenGroups') {
+            utils.adjustBandGridlines(chart)
+         }
 
          const createLine = (dataset) => {
             const line = d3.line()
@@ -1587,12 +1677,14 @@ const charts = {
          chart.leftYAxis.scale = leftYScale;
 
          // Draw axis with .call d3 function
-         const gridlineLength = -chart.g.dimensions.width;
          const leftYAxis = d3
             .axisLeft(leftYScale)
-            .tickSize(gridlineLength)
+            .tickSize(!chart.leftYAxis.gridlines.hidden ? -chart.g.dimensions.width : 0)
             .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
-         chart.leftYAxis.el.transition().duration(animationDuration).call(leftYAxis);
+         
+         chart.leftYAxis.el.transition().duration(animationDuration)
+            .call(leftYAxis)
+            .selectAll('text').style('transform', 'translateX(-6px)');;
 
          // Set min and max values for left axis
          let bottomXMin = chart.bottomXAxis.min === 'auto'
@@ -1612,18 +1704,20 @@ const charts = {
 
          const bottomXAxis = d3
             .axisBottom(bottomXScale)
+            .tickSize(!chart.bottomXAxis.gridlines.hidden ? -chart.g.dimensions.height : 0)
             .tickSize(-chart.g.dimensions.height)
 
          if (chart.bottomXAxis.format.string !== 'auto') {
             bottomXAxis.tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format))
          }
             
-
          // Calculate which ticks to remove for readability
          let ticks = bottomXScale.ticks()
+         
          if (chart.bottomXAxis.filter) {
             ticks = ticks.filter(chart.bottomXAxis.filter);
          }
+
          if (ticks.length > 1) {
             const firstTick = ticks[0];
             const firstTickX = bottomXScale(firstTick);
@@ -1637,7 +1731,9 @@ const charts = {
          }
 
          chart.bottomXAxis.scale = bottomXScale;
-         chart.bottomXAxis.el.transition().duration(animationDuration).call(bottomXAxis);
+         chart.bottomXAxis.el.transition().duration(animationDuration)
+            .call(bottomXAxis)
+            .selectAll('text').style('transform', 'translateY(6px)');;
 
          const createLine = (dataset) => {
             const line = d3.line()
@@ -1707,12 +1803,293 @@ const charts = {
       return chart;
    },
 
+
+   /** 
+    * @name sparkLine
+    * Scale: scaleTime
+    * Axes: left, bottom
+    **/
+
+   sparkLine: (elementId, update) => {
+      const chart = utils.createBaseChart(elementId, {
+         'bottomXAxis.format.string': 'auto',
+         'bottomXAxis.format.isDate': true,
+         'g.margin.top': 0,
+         'g.margin.bottom': 0,
+         'g.margin.left': 0,
+         'g.margin.right': 0,
+      });
+      chart.update = (updates) => {
+         
+         // Define all possible updates
+         utils.updateBaseConfig(chart, updates);
+         utils.updateBaseDimensions(chart);
+
+         // Get animation duration from update 
+         const animationDuration = (updates || {}).animationDuration || 0;
+
+         // Set min and max values for left axis
+         let leftYMin = chart.leftYAxis.min === 'auto'
+            ? d3.min(Object.values(chart.datasets).map(d => d3.min(d.values, v => v.y)))
+            : chart.leftYAxis.min
+
+         let leftYMax = chart.leftYAxis.max === 'auto'
+            ? d3.max(Object.values(chart.datasets).map(d => d3.max(d.values, v => v.y)))
+            : chart.leftYAxis.max 
+
+         // Set padding on either side of left margin
+         let leftYRange = leftYMax - leftYMin;
+         const padding = leftYRange * 0.25;
+         leftYMin = leftYMin - padding;
+         leftYMax = leftYMax + padding;
+         leftYRange = leftYMax - leftYMin;
+
+         // Calculate left gridlines values
+         const leftYValues = [];
+         const gridlines = 3;
+         const step = leftYRange / (gridlines + 1);
+         
+         for (let i = 1; i <= gridlines; i++) {
+            const axisValue = leftYMin + (i * step)
+            leftYValues.push(axisValue)
+         } 
+
+         // Update left axis
+         const leftYDomain = [leftYMin, leftYMax];
+         const leftYScale = d3
+            .scaleLinear() // Type of scale used for axis
+            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
+            .domain(leftYDomain) // All values on axis;
+         chart.leftYAxis.scale = leftYScale;
+
+         // Draw axis with .call d3 function
+         const leftYAxis = d3
+            .axisLeft(leftYScale)
+            .tickValues(leftYValues) 
+            .tickSize(!chart.leftYAxis.gridlines.hidden ? -chart.g.dimensions.width : 0)
+            .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
+         
+         chart.leftYAxis.el.call(leftYAxis)
+
+         // Set min and max values for left axis
+         let bottomXMin = chart.bottomXAxis.min === 'auto'
+            ? d3.min(Object.values(chart.datasets).map(d => d3.min(d.values, v => v.x)))
+            : chart.bottomXAxis.min;
+
+         let bottomXMax = chart.bottomXAxis.max === 'auto'
+            ? d3.max(Object.values(chart.datasets).map(d => d3.max(d.values, v => v.x)))
+            : chart.bottomXAxis.max;
+
+         // Update bottom axis
+         let bottomXDomain = [bottomXMin, bottomXMax]
+         const bottomXScale = d3
+            .scaleTime() // Type of scale used for axis
+            .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width-chart.bottomXAxis.margin.right]) // The range of the axis
+            .domain(bottomXDomain) // The values on the axis
+
+         // Calculate which ticks to remove for readability
+         chart.bottomXAxis.scale = bottomXScale;
+
+         const createLine = (dataset) => {
+            const line = d3.line()
+               .x(d => bottomXScale(d.x))
+               .y(d => leftYScale(d.y))
+               .defined(d => d.y !== undefined)
+               .curve(dataset.isSmooth === true ? d3.curveCatmullRom.alpha(0) : d3.curveLinear)
+            return line(dataset.values);
+         }
+
+         const createArea = (dataset) => {
+            const area = d3.area()
+               .x(d => bottomXScale(d.x))
+               .y0(() => leftYScale(leftYMin))
+               .y1(d => leftYScale(d.y))
+               .defined(d => { return d.y !== undefined})
+               .curve(dataset.isSmooth === true ? d3.curveCatmullRom.alpha(0) : d3.curveLinear)
+            return area(dataset.values);
+         }
+
+         const xValues = [];
+         const seriesData = Object.keys(chart.datasets).map(d => {
+            const dataset = chart.datasets[d];
+            dataset.name = d;
+            dataset.values.forEach(d => {
+               if (xValues.indexOf(d.x) === -1) {xValues.push(d.x)};
+            })
+            return dataset;
+         })
+         
+         chart.bottomXAxis.definedValues = xValues;
+
+         const series = chart.g.el.selectAll(".series-group").data(seriesData, (d) => d.name);
+         const newSeries = series.enter().append("g")
+            .attr("class", "series-group")
+
+         newSeries.selectAll(".line").data(d => [d], d => d.name).enter()
+            .append("path")
+            .attr("class", "line")
+            .style("stroke-width", d => d.lineWidth || 3)
+            .style("stroke", d => d.color)
+            .style("fill", 'none')
+            .attr("d", d => createLine(d))
+            
+         const line = series.selectAll(".line").data(d => [d], d => d.name)
+
+         line.transition().duration(animationDuration)
+            .style("stroke-width", d => d.lineWidth || 3)
+            .style("stroke", d => d.color)
+            .attr("d", d => createLine(d))
+
+         newSeries.selectAll(".area").data(d => [d], d => d.name).enter()
+            .append("path")
+            .attr("class", "area")
+            .style("stroke-width", d => d.lineWidth || 3)
+            .style("stroke", 'none')
+            .style("fill", d => d.color)
+            .style("opacity", d => d.opacity || 0.2)
+            .attr("d", d => createArea(d))   
+
+         const area = series.selectAll(".area").data(d => [d], d => d.name)
+
+         area.style("stroke-width", d => d.lineWidth || 3)
+            .style("stroke", 'none')
+            .style("fill", d => d.color)
+            .style("opacity", d => d.opacity || 0.2)
+            .attr("d", d => createArea(d))  
+
+         series.exit().remove();
+      };
+      chart.update(update);
+      return chart;
+   },
+
+
+   /** 
+    * @name sparkColumn
+    * Scale: scaleBand
+    * Axes: left, bottom
+    **/
+
+   sparkColumn: (elementId, update) => {
+      const chart = utils.createBaseChart(elementId, {
+         'bottomXAxis.gridlines.position': 'betweenGroups',
+         'g.margin.top': 0,
+         'g.margin.bottom': 0,
+         'g.margin.left': 0,
+         'g.margin.right': 0,
+      });
+      chart.update = (updates) => {
+
+         // Update dimensions and base dimensions
+         utils.updateBaseConfig(chart, updates);
+         utils.updateBaseDimensions(chart);
+
+         // Set min and max values for left axis
+         let leftYMin = chart.leftYAxis.min === 'auto'
+            ? d3.min(Object.values(chart.datasets).map(d => d3.min(d.values, v => v.y)))
+            : chart.leftYAxis.min
+
+         let leftYMax = chart.leftYAxis.max === 'auto'
+            ? d3.max(Object.values(chart.datasets).map(d => d3.max(d.values, v => v.y)))
+            : chart.leftYAxis.max 
+
+         // Set padding on either side of left margin
+         let leftYRange = leftYMax - leftYMin;
+         const padding = leftYRange * 0.25;
+         leftYMin = leftYMin - padding;
+         leftYMax = leftYMax + padding;
+         leftYRange = leftYMax - leftYMin;
+
+         // Calculate left gridlines values
+         const leftYValues = [];
+         const gridlines = 3;
+         const step = leftYRange / (gridlines + 1);
+         
+         for (let i = 1; i <= gridlines; i++) {
+            const axisValue = leftYMin + (i * step)
+            leftYValues.push(axisValue)
+         } 
+
+         // Update left axis
+         const leftYDomain = [leftYMin, leftYMax];
+         const leftYScale = d3
+            .scaleLinear() // Type of scale used for axis
+            .rangeRound([chart.g.dimensions.height, 0]) // The range of the axis
+            .domain(leftYDomain) // All values on axis;
+         chart.leftYAxis.scale = leftYScale;
+
+         // Draw axis with .call d3 function
+         const leftYAxis = d3
+            .axisLeft(leftYScale)
+            .tickValues(leftYValues)
+            .tickSize(!chart.leftYAxis.gridlines.hidden ? -chart.g.dimensions.width : 0)
+            .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
+         
+         chart.leftYAxis.el
+            .call(leftYAxis)
+
+         // Update bottom axis
+         let bottomXDomain = []
+         Object.values(chart.datasets).forEach(d => d.values.forEach(v => {
+            if (bottomXDomain.indexOf(v.x) === -1){bottomXDomain.push(v.x)}
+         }));
+
+         bottomXDomain = bottomXDomain.sort((a,b) => {
+            if (a < b) { return -1; }
+            if (a > b) { return 1; }
+            return 0;
+         });
+
+         const bottomXScale = d3
+            .scaleBand() // Type of scale used for axis
+            .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width-chart.bottomXAxis.margin.right]) // The range of the axis
+            .domain(bottomXDomain) // The values on the axis
+            .padding(chart.bottomXAxis.padding) // Padding between columns
+         
+         chart.bottomXAxis.scale = bottomXScale;
+
+         const dataKeys = Object.keys(chart.datasets) || [];
+         const columnData = chart.datasets[dataKeys[0]] || {};
+         const columns = chart.g.el.selectAll(".column").data(columnData.values, (d) => d.x);
+
+         columns.enter().append("rect")
+            .attr("class", "column")
+            .attr('width', bottomXScale.bandwidth())
+            .attr('rx', columnData.borderRadius !== undefined ? columnData.borderRadius : 0)
+            .style('fill', columnData.color)
+            .attr('height', d => {
+               return d.y < 0 
+                  ? leftYScale(d.y) - leftYScale(leftYMin)
+                  : leftYScale(leftYMin) - leftYScale(d.y)
+            })
+            .attr('y', d => d.y < 0 ? leftYScale(0) : leftYScale(d.y))
+            .attr('x', d => bottomXScale(d.x))
+
+         
+         columns
+            .attr('width', bottomXScale.bandwidth())
+            .attr('rx', columnData.borderRadius !== undefined ? columnData.borderRadius : 0)
+            .style('fill', columnData.color)
+            .attr('height', d => {
+               return d.y < 0 
+                  ? leftYScale(d.y) - leftYScale(leftYMin)
+                  : leftYScale(leftYMin) - leftYScale(d.y)
+            })
+            .attr('y', d => d.y < 0 ? leftYScale(0) : leftYScale(d.y))
+            .attr('x', d => bottomXScale(d.x))
+
+         columns.exit().remove()
+         
+      }
+      chart.update(update);
+      return chart;
+   },
+
    // TODO
    // heatMap: (chartConfig) => {},
    // bar: (chartConfig) => {},
    // stackedBar: (chartConfig) => {},
    // groupedBar: (chartConfig) => {},
-   // sparkLine: (chartConfig) => {},
    // pieChart: (chartConfig) => {}
 
 }

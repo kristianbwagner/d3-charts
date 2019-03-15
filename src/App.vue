@@ -9,6 +9,8 @@
          <router-link class="link" to="/stacked-area">Stacked Area</router-link>
          <router-link class="link" to="/line-column">Line Column</router-link>
          <router-link class="link" to="/time-line">Time line</router-link>
+         <router-link class="link" to="/spark-line">Spark Line</router-link>
+         <router-link class="link" to="/spark-column">Spark Column</router-link>
       </div>
       <router-view>
 		</router-view>
@@ -30,7 +32,7 @@
    }
 
    #header {
-      padding: 20px;
+      padding: 16px;
       overflow-x: scroll;
       overflow-y: hidden;
       border-bottom: 1px solid #E4E4E4;
@@ -60,8 +62,18 @@
       height: 350px;
       background: #FFF;
       border: 1px solid #E4E4E4;
-      margin: 12px 30px;
+      margin: 16px;
       overflow: hidden;
+   }
+
+   .spark-chart {
+      position: relative;
+      cursor: pointer;
+      height: 120px;
+      background: #FFF;
+      margin: 16px;
+      //overflow: hidden;
+      //border: 1px solid #E4E4E4;
    }
 
    .chart-hover {
@@ -81,9 +93,10 @@
    .domain {
       stroke: none
    }
+   
 
    .buttons {
-      padding: 12px 30px;
+      padding: 12px 16px;
       border-bottom: 1px solid #E4E4E4;
    }
 
@@ -94,6 +107,7 @@
       border: 1px solid #E4E4E4;
       outline: none;
       cursor: pointer;
+      margin-right: 6px;
       
       &:hover {
          background: #EFEFEF;
@@ -103,7 +117,5 @@
    text {
       font-size: 12px;
    }
-
-   
 
 </style>
