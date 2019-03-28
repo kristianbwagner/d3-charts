@@ -5,6 +5,7 @@
          <router-link class="link" to="/grouped-column">Grouped Column</router-link>
          <router-link class="link" to="/stacked-column">Stacked Column</router-link>
          <router-link class="link" to="/line">Line</router-link>
+         <router-link class="link" to="/scatterplot">Scatterplot</router-link>
          <router-link class="link" to="/area">Area</router-link>
          <router-link class="link" to="/stacked-area">Stacked Area</router-link>
          <router-link class="link" to="/line-column">Line Column</router-link>

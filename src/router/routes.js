@@ -48,5 +48,10 @@ export default [
       path: '/spark-column',
       name: "spark-column",
       component: () => import('@/pages/spark-column.vue'),
+   },
+   {
+      path: '/scatterplot',
+      name: "scatterplot",
+      component: () => import('@/pages/scatterplot.vue'),
    }
 ]

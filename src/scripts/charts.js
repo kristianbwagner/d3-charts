@@ -1,6 +1,7 @@
 import * as d3 from 'd3';
 import _get from 'lodash/get';
 import _set from 'lodash/set';
+import regression from 'regression';
 
 // Helpers for creating charts
 const utils = {
@@ -287,6 +288,7 @@ const utils = {
                mapUpdate(`datasets.['${key}'].radius`, `datasets.['${key}'].radius`);
                mapUpdate(`datasets.['${key}'].borderRadius`, `datasets.['${key}'].borderRadius`);
                mapUpdate(`datasets.['${key}'].lineWidth`, `datasets.['${key}'].lineWidth`);
+               mapUpdate(`datasets.['${key}'].hasBestFit`, `datasets.['${key}'].hasBestFit`);
             }
          })
 
@@ -336,6 +338,32 @@ const utils = {
       gridLines
          .style('transform', `translateX(${tickAdjust}px)`)
          .style('opacity', (d,i) => i === gridLines.size() - 1 ? 0 : 1);
+   },
+   bestFitLine(dataset) {
+      
+      const data = dataset.values.map(d => [d.x, d.y])
+
+      const curvesToTest = [
+         {name: 'linear'},
+         {name: 'polynomial', order: 2},
+         {name: 'exponential'},
+         {name: 'power'}
+      ]
+
+      let bestCurve = {r2: -1};
+      curvesToTest.forEach(d => {
+         let result = regression[d.name](data, {order: d.order});
+         if (result.r2 > bestCurve.r2) {bestCurve = result};
+      })
+
+      const curvePoints = bestCurve.points || [];
+      const points = curvePoints.map(d => {return {x: d[0], y: d[1]}})
+
+      return [{
+         values: points,
+         name: dataset.name,
+         color: dataset.color
+      }]
    }
 };
 
@@ -979,6 +1007,166 @@ const charts = {
       chart.update(update);
       return chart;
    },
+
+
+      /** 
+    * @name line
+    * Scale: scalePoint
+    * Axes: left, bottom
+    **/
+
+   scatterplot: (elementId, update) => {
+      const chart = utils.createBaseChart(elementId, {
+         'bottomXAxis.margin.left': 20,
+         'bottomXAxis.margin.right': 20
+      });
+      chart.update = (updates) => {
+      
+         // Update dimensions and base dimensions
+         utils.updateBaseConfig(chart, updates);
+         utils.updateBaseDimensions(chart); 
+
+         // Set min and max values for left axis
+         let leftYMin = chart.leftYAxis.min === 'auto'
+            ? d3.min(Object.values(chart.datasets).map(d => d3.min(d.values, v => v.y)))
+            : chart.leftYAxis.min
+         leftYMin = d3.min([0, leftYMin]);
+         
+         let leftYMax = chart.leftYAxis.max === 'auto'
+            ? d3.max(Object.values(chart.datasets).map(d => d3.max(d.values, v => v.y)))
+            : chart.leftYAxis.max 
+         leftYMax = d3.max([0, leftYMax]);
+
+         // Update left axis
+         const leftYDomain = [leftYMin, leftYMax];
+         const leftYScale = d3
+            .scaleLinear() // Type of scale used for axis
+            .rangeRound([chart.g.dimensions.height-6, 0]) // The range of the axis
+            .domain(leftYDomain) // All values on axis;
+         chart.leftYAxis.scale = leftYScale;
+
+         // Draw axis with .call d3 function
+         const leftYAxis = d3
+            .axisLeft(leftYScale)
+            .tickSize(!chart.leftYAxis.gridlines.hidden ? -chart.g.dimensions.width : 0)
+            .tickFormat(d => utils.formatValue(d, chart.leftYAxis.format))
+         
+         chart.leftYAxis.el
+            .call(leftYAxis)
+            .selectAll('text').style('transform', 'translateX(-6px)');
+
+         // Set min and max values for left axis
+         let bottomXMin = chart.bottomXAxis.min === 'auto'
+            ? d3.min(Object.values(chart.datasets).map(d => d3.min(d.values, v => v.x)))
+            : chart.bottomXAxis.min
+         
+         let bottomXMax = chart.bottomXAxis.max === 'auto'
+            ? d3.max(Object.values(chart.datasets).map(d => d3.max(d.values, v => v.x)))
+            : chart.bottomXAxis.max 
+
+         // Update left axis
+         const bottomXDomain = [bottomXMin, bottomXMax];
+
+         const bottomXScale = d3
+            .scaleLinear() // Type of scale used for axis
+            .rangeRound([chart.bottomXAxis.margin.left, chart.g.dimensions.width - chart.bottomXAxis.margin.right]) // The range of the axis
+            .domain(bottomXDomain) // The values on the axis
+         
+         const bottomXAxis = d3
+            .axisBottom(bottomXScale)
+            .tickSize(!chart.bottomXAxis.gridlines.hidden ? -chart.g.dimensions.height : 0)
+            .tickFormat(d => utils.formatValue(d, chart.bottomXAxis.format));
+
+         chart.bottomXAxis.scale = bottomXScale;
+         chart.bottomXAxis.el
+            .call(bottomXAxis)
+            .selectAll('text').style('transform', 'translateY(6px)');
+
+      
+         const xValues = [];
+         const seriesData = Object.keys(chart.datasets).map(d => {
+            const dataset = chart.datasets[d];
+            dataset.name = d;
+            dataset.values.forEach(d => {
+               if (xValues.indexOf(d.x) === -1) {xValues.push(d.x)};
+            })
+            return dataset;
+         })
+
+         chart.bottomXAxis.definedValues = xValues;
+
+         const series = chart.g.el.selectAll(".series-group").data(seriesData, (d) => d.name);
+
+         const newSeries = series.enter().append("g")
+            .attr("class", "series-group")
+
+         const createLine = (dataset) => {
+            const line = d3.line()
+               .x(d => bottomXScale(d.x))
+               .y(d => leftYScale(d.y))
+               .defined(d => { return d.y !== undefined})
+               .curve(d3.curveNatural)
+            return line(dataset.values);
+         }
+
+         newSeries.selectAll(".line").data(d => {
+            return d.hasBestFit ? utils.bestFitLine(d) : {name: ''};
+         }, d => d.name).enter()
+            .append("path")
+            .attr("class", "line")
+            .style("stroke-width", d => d.lineWidth || 3)
+            .style("opacity", 0.15)
+            .style("stroke", d => d.color)
+            .style("fill", 'none')
+            .attr("d", d => createLine(d))
+
+         newSeries.selectAll(".circle").data(d => d.values.map(c => {
+            return {x: c.x, y: c.y, color: d.color, radius: d.radius};
+         }), d => d.x).enter()
+            .append("circle")
+            .attr("class", "circle")
+            .attr("r", d => d.radius !== undefined ? d.radius : 5)
+            .attr("cx", d => bottomXScale(d.x))
+            .attr("cy", d => leftYScale(d.y))
+            .attr("fill", d => d.color)
+
+         const circles = series.selectAll(".circle").data(d => d.values.map(c => {
+            return {x: c.x, y: c.y, color: d.color, radius: d.radius};
+         }), d => d.x)
+
+         circles.attr("r", d => d.radius !== undefined ? d.radius : 5)
+            .attr("cx", d => bottomXScale(d.x))
+            .attr("cy", d => leftYScale(d.y || 0))
+            .attr("fill", d => d.y === undefined ? 'none' : d.color)
+         
+         circles.exit().remove();
+
+         const line = series.selectAll(".line").data(d => {
+            return d.hasBestFit ? utils.bestFitLine(d) : {name: ''};
+         }, d => d.name)
+
+         line.enter()
+            .append("path")
+            .attr("class", "line")
+            .style("stroke-width", d => d.lineWidth || 3)
+            .style("opacity", 0.15)
+            .style("stroke", d => d.color)
+            .style("fill", 'none')
+            .attr("d", d => createLine(d))
+
+         line.style("stroke-width", d => d.lineWidth || 3)
+            .style("stroke", d => d.color)
+            .style("opacity", 0.15)
+            .attr("d", d => createLine(d))
+         
+         line.exit().remove();
+
+         series.exit().remove();
+      }
+      chart.update(update);
+      return chart;
+   },
+
 
 
    /** 
